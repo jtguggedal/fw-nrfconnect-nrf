@@ -21,12 +21,8 @@
  * the beginning of the Non-Secure image (not its size).
  */
 
-&flash0 {
-	reg = <0x00000000 DT_SIZE_K(256)>;
-};
-
 &slot0_partition {
-	reg = <0x00010000 0x30000>;
+	reg = <0x00010000 0x70000>;
 };
 
 &slot0_ns_partition {
@@ -34,7 +30,7 @@
 };
 
 &slot1_partition {
-	reg = <0x00080000 0x30000>;
+	reg = <0x00080000 0x70000>;
 };
 
 &slot1_ns_partition {
