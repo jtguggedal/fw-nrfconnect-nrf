@@ -568,21 +568,28 @@ static void sensor_data_send(struct nrf_cloud_sensor_data *data)
 /**@brief Callback for user association event received from nRF Cloud. */
 static void on_user_association_req(const struct nrf_cloud_evt *p_evt)
 {
-	if (!atomic_get(&pattern_recording)) {
-		k_sem_init(&user_assoc_sem, 0, 1);
-		display_state = LEDS_PATTERN_WAIT;
-		atomic_set(&pattern_recording, 1);
-		buttons_captured = 0;
-		buttons_to_capture = p_evt->param.ua_req.sequence.len;
 
-		printk("Please enter the user association pattern ");
+	if (p_evt->param.ua_req.sequence.len) {
+		if (!atomic_get(&pattern_recording)) {
+			k_sem_init(&user_assoc_sem, 0, 1);
+			display_state = LEDS_PATTERN_WAIT;
+			atomic_set(&pattern_recording, 1);
+			buttons_captured = 0;
+			buttons_to_capture = p_evt->param.ua_req.sequence.len;
 
-		if (IS_ENABLED(CONFIG_CLOUD_UA_BUTTONS)) {
-			printk("using the buttons and switches\n");
-		} else if (IS_ENABLED(CONFIG_CLOUD_UA_CONSOLE)) {
-			printk("using the console\n");
-			console_thread_create();
+			printk("Please enter the user association pattern ");
+
+			if (IS_ENABLED(CONFIG_CLOUD_UA_BUTTONS)) {
+				printk("using the buttons and switches\n");
+			} else if (IS_ENABLED(CONFIG_CLOUD_UA_CONSOLE)) {
+				printk("using the console\n");
+				console_thread_create();
+			}
 		}
+	} else {
+		recently_associated = true;
+		display_state = LEDS_PATTERN_WAIT;
+		printk("Waiting for DUA with PIN\n");
 	}
 }
 
