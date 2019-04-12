@@ -17,6 +17,7 @@
 LOG_MODULE_REGISTER(nrf_cloud_codec, CONFIG_NRF_CLOUD_LOG_LEVEL);
 
 #define INITIATE_STR "initiate"
+#define DUA_PIN_STR "not_associated"
 #define PATTERN_MISMATCH_STR "pattern_mismatch"
 #define PATTERN_WAIT_STR "pattern_wait"
 #define TIMEOUT_STR "timeout"
@@ -279,6 +280,7 @@ int nrf_cloud_decode_requested_state(const struct nrf_cloud_data *input,
 	cJSON *desired_obj;
 	cJSON *pairing_obj;
 	cJSON *pairing_state_obj;
+	cJSON *topic_prefix_obj;
 
 	root_obj = cJSON_Parse(input->ptr);
 	if (root_obj == NULL) {
@@ -290,6 +292,13 @@ int nrf_cloud_decode_requested_state(const struct nrf_cloud_data *input,
 	desired_obj = json_object_decode(state_obj, "desired");
 	if (desired_obj == NULL) {
 		desired_obj = state_obj;
+	}
+
+	topic_prefix_obj = json_object_decode(desired_obj, "nrfcloud_mqtt_topic_prefix");
+	if (topic_prefix_obj != NULL) {
+		(*requested_state) = STATE_UA_PIN_COMPLETE;
+		cJSON_Delete(root_obj);
+		return 0;
 	}
 
 	pairing_obj = json_object_decode(desired_obj, "pairing");
@@ -313,6 +322,8 @@ int nrf_cloud_decode_requested_state(const struct nrf_cloud_data *input,
 		(*requested_state) = STATE_UA_INPUT_TIMEOUT;
 	} else if (compare(state_str, PAIRED_STR)) {
 		(*requested_state) = STATE_UA_COMPLETE;
+	} else if (compare(state_str, DUA_PIN_STR)) {
+		(*requested_state) = STATE_UA_PIN_WAIT;
 	}
 
 	cJSON_Delete(root_obj);
@@ -344,6 +355,15 @@ int nrf_cloud_encode_state(u32_t reported_state, struct nrf_cloud_data *output)
 	ret = 0;
 
 	switch (reported_state) {
+	case STATE_UA_PIN_WAIT: {
+
+		ret += json_add_str(pairing_obj, "state", DUA_PIN_STR);
+		ret += json_add_null(pairing_obj, "topics");
+		ret += json_add_null(pairing_obj, "config");
+		ret += json_add_null(reported_obj, "stage");
+		ret += json_add_null(reported_obj, "nrfcloud_mqtt_topic_prefix");
+		break;
+	}
 	case STATE_UA_INITIATE: {
 		/* Clear pairing config and topics fields. */
 		ret += json_add_str(reported_obj, "stage", "prod");
@@ -389,6 +409,17 @@ int nrf_cloud_encode_state(u32_t reported_state, struct nrf_cloud_data *output)
 		ret += json_add_str(pairing_obj, "state", PATTERN_MISMATCH_STR);
 		break;
 	}
+	case STATE_UA_PIN_COMPLETE: {
+		struct nrf_cloud_data rx_endp;
+		struct nrf_cloud_data tx_endp;
+		struct nrf_cloud_data endp;
+
+		/* Get the endpoint information. */
+		nct_dc_endpoint_get(&tx_endp, &rx_endp, &endp);
+		ret += json_add_str(reported_obj, "nrfcloud_mqtt_topic_prefix", endp.ptr);
+
+		// Fall through.
+	}
 	case STATE_UA_COMPLETE: {
 		/* Clear pairing config and pairingStatus fields. */
 		ret += json_add_str(pairing_obj, "state", PAIRED_STR);
@@ -399,7 +430,7 @@ int nrf_cloud_encode_state(u32_t reported_state, struct nrf_cloud_data *output)
 		struct nrf_cloud_data tx_endp;
 
 		/* Get the endpoint information. */
-		nct_dc_endpoint_get(&tx_endp, &rx_endp);
+		nct_dc_endpoint_get(&tx_endp, &rx_endp, NULL);
 
 		/* Report pairing topics. */
 		cJSON *topics_obj = cJSON_CreateObject();
@@ -469,7 +500,8 @@ int nrf_cloud_encode_state(u32_t reported_state, struct nrf_cloud_data *output)
  */
 int nrf_cloud_decode_data_endpoint(const struct nrf_cloud_data *input,
 				   struct nrf_cloud_data *tx_endpoint,
-				   struct nrf_cloud_data *rx_endpoint)
+				   struct nrf_cloud_data *rx_endpoint,
+				   struct nrf_cloud_data *endpoint)
 {
 	__ASSERT_NO_MSG(input != NULL);
 	__ASSERT_NO_MSG(input->ptr != NULL);
@@ -492,6 +524,11 @@ int nrf_cloud_decode_data_endpoint(const struct nrf_cloud_data *input,
 		parent_obj = state_obj;
 	}
 
+	cJSON *endpoint_obj = NULL;
+	if (endpoint != NULL) {
+		endpoint_obj = json_object_decode(parent_obj, "nrfcloud_mqtt_topic_prefix");
+	}
+
 	cJSON *pairing_obj = json_object_decode(parent_obj, "pairing");
 	cJSON *pairing_state_obj = json_object_decode(pairing_obj, "state");
 	cJSON *topic_obj = json_object_decode(pairing_obj, "topics");
@@ -507,6 +544,14 @@ int nrf_cloud_decode_data_endpoint(const struct nrf_cloud_data *input,
 	if (!compare(state_str, PAIRED_STR)) {
 		cJSON_Delete(root_obj);
 		return -ENOENT;
+	}
+
+	if (endpoint_obj != NULL) {
+		err = json_decode_and_alloc(endpoint_obj, endpoint);
+		if (err) {
+			cJSON_Delete(root_obj);
+			return err;
+		}
 	}
 
 	cJSON *tx_obj = json_object_decode(topic_obj, "d2c");
