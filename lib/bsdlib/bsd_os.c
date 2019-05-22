@@ -359,6 +359,7 @@ ISR_DIRECT_DECLARE(rpc_proxy_irq_handler)
 	return 1; /* We should check if scheduling decision should be made */
 }
 
+#if defined(CONFIG_BSD_LIBRARY_TRACE_ENABLED)
 ISR_DIRECT_DECLARE(trace_proxy_irq_handler)
 {
 	/*
@@ -377,6 +378,8 @@ void trace_task_create(void)
 			   trace_proxy_irq_handler, UNUSED_FLAGS);
 	irq_enable(TRACE_IRQ);
 }
+
+#endif /* CONFIG_BSD_LIBRARY_TRACE_ENABLED */
 
 void read_task_create(void)
 {
@@ -419,9 +422,11 @@ void bsd_os_init(void)
 
 	read_task_create();
 
+#if defined(CONFIG_BSD_LIBRARY_TRACE_ENABLED)
 	/* Configure and enable modem tracing over UART. */
 	trace_uart_init();
 	trace_task_create();
+#endif /* CONFIG_BSD_LIBRARY_TRACE_ENABLED */
 }
 
 int32_t bsd_os_trace_put(const uint8_t * const data, uint32_t len)
