@@ -130,7 +130,7 @@ static int gps_sim_init_thread(struct device *dev)
 	k_thread_create(&drv_data->thread, drv_data->thread_stack,
 			CONFIG_GPS_SIM_THREAD_STACK_SIZE,
 			(k_thread_entry_t)gps_sim_thread, dev, NULL, NULL,
-			K_PRIO_COOP(CONFIG_GPS_SIM_THREAD_PRIORITY), 0, 0);
+			K_PRIO_PREEMPT(CONFIG_GPS_SIM_THREAD_PRIORITY), 0, 0);
 
 	return 0;
 }
