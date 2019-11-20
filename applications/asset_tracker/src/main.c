@@ -147,27 +147,30 @@ static void work_init(void);
 static void sensor_data_send(struct cloud_channel_data *data);
 static void device_status_send(struct k_work *work);
 
-K_SEM_DEFINE(cloud_ready_to_connect, 0, 1);
 K_SEM_DEFINE(cloud_disconnected, 0, 1);
 
 #if defined(CONFIG_LWM2M_CARRIER)
 static void app_disconnect(void);
 K_SEM_DEFINE(bsdlib_initialized, 0, 1);
 K_SEM_DEFINE(lte_connected, 0, 1);
+K_SEM_DEFINE(cloud_ready_to_connect, 0, 1);
 
-int lwm2m_carrier_event_handler(const lwm2m_carrier_event_t *event)
+void lwm2m_carrier_event_handler(const lwm2m_carrier_event_t *event)
 {
 	switch (event->type) {
 	case LWM2M_CARRIER_EVENT_BSDLIB_INIT:
 		printk("LWM2M_CARRIER_EVENT_BSDLIB_INIT\n");
 		k_sem_give(&bsdlib_initialized);
 		break;
-	case LWM2M_CARRIER_EVENT_CONNECT:
-		printk("LWM2M_CARRIER_EVENT_CONNECT\n");
+	case LWM2M_CARRIER_EVENT_CONNECTED:
+		printk("LWM2M_CARRIER_EVENT_CONNECTED\n");
 		k_sem_give(&lte_connected);
 		break;
-	case LWM2M_CARRIER_EVENT_DISCONNECT:
-		printk("LWM2M_CARRIER_EVENT_DISCONNECT\n");
+	case LWM2M_CARRIER_EVENT_DISCONNECTED:
+		printk("LWM2M_CARRIER_EVENT_DISCONNECTED\n");
+		break;
+	case LWM2M_CARRIER_EVENT_BOOTSTRAPPED:
+		printk("LWM2M_CARRIER_EVENT_BOOTSTRAPPED\n");
 		break;
 	case LWM2M_CARRIER_EVENT_READY:
 		printk("LWM2M_CARRIER_EVENT_READY\n");
@@ -186,37 +189,48 @@ int lwm2m_carrier_event_handler(const lwm2m_carrier_event_t *event)
 		printk("LWM2M_CARRIER_EVENT_REBOOT\n");
 		break;
 	}
-
-	return 0;
 }
 #endif /* defined(CONFIG_LWM2M_CARRIER) */
 
 /**@brief nRF Cloud error handler. */
 void error_handler(enum error_type err_type, int err_code)
 {
+	atomic_set(&send_data_enable, 0);
+
+	if (IS_ENABLED(CONFIG_LWM2M_CARRIER)) {
+		/* The LWM2M carrier library should do the reboot decisions. */
+		goto error_loop;
+	}
+
 	if (err_type == ERROR_CLOUD) {
 		if (gps_control_is_enabled()) {
 			printk("Reboot\n");
 			sys_reboot(0);
 		}
-#if defined(CONFIG_LTE_LINK_CONTROL)
-		/* Turn off and shutdown modem */
-		printk("LTE link disconnect\n");
-		int err = lte_lc_power_off();
-		if (err) {
-			printk("lte_lc_power_off failed: %d\n", err);
+
+		if (IS_ENABLED(CONFIG_BSD_LIBRARY)) {
+			/* Turn off and shutdown modem */
+			printk("LTE link disconnect\n");
+			int err = lte_lc_power_off();
+			if (err) {
+				printk("lte_lc_power_off failed: %d\n", err);
+			}
 		}
-#endif /* CONFIG_LTE_LINK_CONTROL */
-#if defined(CONFIG_BSD_LIBRARY)
-		printk("Shutdown modem\n");
-		bsdlib_shutdown();
-#endif
+
+		if (IS_ENABLED(CONFIG_BSD_LIBRARY)) {
+			printk("Shutdown modem\n");
+			bsdlib_shutdown();
+		}
 	}
 
-#if !defined(CONFIG_DEBUG) && defined(CONFIG_REBOOT)
-	LOG_PANIC();
-	sys_reboot(0);
-#else
+	if (!IS_ENABLED(CONFIG_DEBUG) && IS_ENABLED(CONFIG_REBOOT)) {
+		LOG_PANIC();
+		printk("Rebooting in 5 seconds...\n");
+		k_busy_wait(K_SECONDS(5));
+		sys_reboot(0);
+	}
+
+error_loop:
 	switch (err_type) {
 	case ERROR_CLOUD:
 		/* Blinking all LEDs ON/OFF in pairs (1 and 4, 2 and 3)
@@ -243,9 +257,8 @@ void error_handler(enum error_type err_type, int err_code)
 	}
 
 	while (true) {
-		k_cpu_idle();
+		k_sleep(K_MINUTES(60));
 	}
-#endif /* CONFIG_DEBUG */
 }
 
 void k_sys_fatal_error_handler(unsigned int reason,
@@ -776,20 +789,21 @@ void on_pairing_done(void)
 	printk("Fallback to controlled reboot\n");
 	printk("Shutting down LTE link...\n");
 
-#if defined(CONFIG_BSD_LIBRARY)
-	err = lte_lc_power_off();
-	if (err) {
-		printk("Could not shut down link\n");
-	} else {
-		printk("LTE link disconnected\n");
+	if (IS_ENABLED(CONFIG_BSD_LIBRARY)) {
+		err = lte_lc_power_off();
+		if (err) {
+			printk("Could not shut down link\n");
+		} else {
+			printk("LTE link disconnected\n");
+		}
 	}
-#endif
 
-#ifdef CONFIG_REBOOT
-	printk("Rebooting...\n");
-	LOG_PANIC();
-	sys_reboot(SYS_REBOOT_COLD);
-#endif
+	if (IS_ENABLED(CONFIG_REBOOT) && !IS_ENABLED(CONFIG_LWM2M_CARRIER)) {
+		printk("Rebooting...\n");
+		LOG_PANIC();
+		sys_reboot(SYS_REBOOT_COLD);
+	}
+
 	printk("**** Manual reboot required ***\n");
 }
 
@@ -1272,7 +1286,10 @@ void main(void)
 	modem_configure();
 
 connect:
+
+#if defined(CONFIG_LWM2M_CARRIER)
 	k_sem_take(&cloud_ready_to_connect, K_FOREVER);
+#endif
 
 	/* Carrier FOTA happens in the background, but it uses the TLS socket
 	 * that cloud also would use. The carrier library will reboot the device
@@ -1304,7 +1321,7 @@ connect:
 
 		if (ret < 0) {
 			printk("poll() returned an error: %d\n", ret);
-			error_handler(ERROR_CLOUD, ret);
+			cloud_error_handler(ret);
 			continue;
 		}
 
@@ -1323,7 +1340,8 @@ connect:
 			if (atomic_get(&carrier_requested_disconnect)) {
 				return;
 			}
-			error_handler(ERROR_CLOUD, -EIO);
+
+			cloud_error_handler(-EIO);
 			return;
 		}
 
@@ -1335,7 +1353,7 @@ connect:
 				return;
 			}
 
-			error_handler(ERROR_CLOUD, -EIO);
+			cloud_error_handler(-EIO);
 			return;
 		}
 
@@ -1346,7 +1364,7 @@ connect:
 				return;
 			}
 
-			error_handler(ERROR_CLOUD, -EIO);
+			cloud_error_handler(-EIO);
 			return;
 		}
 	}
