@@ -262,8 +262,16 @@ config BOSCH_BSEC_LIBRARY_PATH
 	help
 	  Path to the folder where the Bosch BSEC library is placed.
 
+config ENVIRONMENT_DATA_SEND_ON_GPS_FIX
+	bool "Send updated environmental on GPS fix"
+
+config ENVIRONMENT_DATA_SEND_ON_INTERVAL
+	bool "Send updated environmental every n seconds"
+	default y
+
 config ENVIRONMENT_DATA_SEND_INTERVAL
 	int "Interval in seconds for sending environment data"
+	default 0 if !ENVIRONMENT_DATA_SEND_ON_INTERVAL
 	default 30
 	help
 	  Interval between each sampling and sending of environment sensor data.
