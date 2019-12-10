@@ -40,7 +40,6 @@
 #include "service_info.h"
 
 #define CALIBRATION_PRESS_DURATION 	K_SECONDS(5)
-#define CLOUD_CONNACK_WAIT_DURATION	K_SECONDS(CONFIG_CLOUD_WAIT_DURATION)
 
 #ifdef CONFIG_ACCEL_USE_SIM
 #define FLIP_INPUT			CONFIG_FLIP_INPUT
@@ -111,12 +110,14 @@ static struct cloud_channel_data signal_strength_cloud_data;
 #endif /* CONFIG_MODEM_INFO */
 static atomic_t carrier_requested_disconnect;
 static atomic_t send_data_enable;
+static atomic_t rsrp_updated;
+static atomic_t cloud_connect_count;
 
 /* Flag used for flip detection */
 static bool flip_mode_enabled = true;
 
 /* Structures for work */
-static struct k_work connect_work;
+static struct k_delayed_work cloud_connect_work;
 static struct k_work send_gps_data_work;
 static struct k_work send_button_data_work;
 static struct k_work send_flip_data_work;
@@ -197,11 +198,6 @@ void error_handler(enum error_type err_type, int err_code)
 {
 	atomic_set(&send_data_enable, 0);
 
-	if (IS_ENABLED(CONFIG_LWM2M_CARRIER)) {
-		/* The LWM2M carrier library should do the reboot decisions. */
-		goto error_loop;
-	}
-
 	if (err_type == ERROR_CLOUD) {
 		if (gps_control_is_enabled()) {
 			printk("Reboot\n");
@@ -230,7 +226,6 @@ void error_handler(enum error_type err_type, int err_code)
 		sys_reboot(0);
 	}
 
-error_loop:
 	switch (err_type) {
 	case ERROR_CLOUD:
 		/* Blinking all LEDs ON/OFF in pairs (1 and 4, 2 and 3)
@@ -334,8 +329,13 @@ static void gps_trigger_handler(struct device *dev, struct gps_trigger *trigger)
 	}
 
 	gps_control_stop(K_NO_WAIT);
+
 	k_work_submit(&send_gps_data_work);
-	k_delayed_work_submit(&send_env_data_work, K_NO_WAIT);
+	k_work_submit(&rsrp_work);
+
+	if (IS_ENABLED(CONFIG_ENVIRONMENT_DATA_SEND_ON_GPS_FIX)) {
+		k_delayed_work_submit(&send_env_data_work, K_NO_WAIT);
+	}
 }
 
 /**@brief Callback for sensor trigger events */
@@ -435,7 +435,10 @@ static void cloud_cmd_handler(struct cloud_command *cmd)
 /**@brief Callback handler for LTE RSRP data. */
 static void modem_rsrp_handler(char rsrp_value)
 {
-	rsrp.value = rsrp_value;
+	if (rsrp.value == rsrp_value) {
+		/* No need to update the value. */
+		return;
+	}
 
 	/* If the RSRP value is 255, it's documented as 'not known or not
 	 * detectable'. Therefore, we should not send those values.
@@ -444,7 +447,9 @@ static void modem_rsrp_handler(char rsrp_value)
 		return;
 	}
 
-	k_work_submit(&rsrp_work);
+	rsrp.value = rsrp_value;
+
+	atomic_set(&rsrp_updated, 1);
 }
 
 /**@brief Publish RSRP data to the cloud. */
@@ -454,7 +459,7 @@ static void modem_rsrp_data_send(struct k_work *work)
 	static u32_t timestamp_prev;
 	size_t len;
 
-	if (!atomic_get(&send_data_enable)) {
+	if (!atomic_get(&send_data_enable) || !atomic_get(&rsrp_updated)) {
 		return;
 	}
 
@@ -462,6 +467,8 @@ static void modem_rsrp_data_send(struct k_work *work)
 	    K_SECONDS(CONFIG_HOLD_TIME_RSRP)) {
 		return;
 	}
+
+	atomic_set(&rsrp_updated, 0);
 
 	len = snprintf(buf, CONFIG_MODEM_INFO_BUFFER_SIZE,
 			"%d", rsrp.value - rsrp.offset);
@@ -615,8 +622,10 @@ static void env_data_send(void)
 		}
 	}
 
-	k_delayed_work_submit(&send_env_data_work,
-	K_SECONDS(CONFIG_ENVIRONMENT_DATA_SEND_INTERVAL));
+	if (IS_ENABLED(CONFIG_ENVIRONMENT_DATA_SEND_ON_INTERVAL)) {
+		k_delayed_work_submit(&send_env_data_work,
+			K_SECONDS(CONFIG_ENVIRONMENT_DATA_SEND_INTERVAL));
+	}
 
 	return;
 error:
@@ -816,7 +825,12 @@ void cloud_event_handler(const struct cloud_backend *const backend,
 	switch (evt->type) {
 	case CLOUD_EVT_CONNECTED:
 		printk("CLOUD_EVT_CONNECTED\n");
-		k_delayed_work_cancel(&cloud_reboot_work);
+
+		/* Cloud connection was successful, cancel the pending work that
+		 * would run if connection attempt timed out.
+		 */
+		k_delayed_work_cancel(&cloud_connect_work);
+		atomic_set(&cloud_connect_count, 0);
 		ui_led_set_pattern(UI_CLOUD_CONNECTED);
 		break;
 	case CLOUD_EVT_READY:
@@ -867,6 +881,9 @@ void cloud_event_handler(const struct cloud_backend *const backend,
 static void app_connect(struct k_work *work)
 {
 	int err;
+
+	printk("Connecting to cloud. Timeout is set to %d seconds.\n",
+		CONFIG_CLOUD_CONNECT_RETRY_DELAY);
 
 	ui_led_set_pattern(UI_CLOUD_CONNECTING);
 	err = cloud_connect(cloud_backend);
@@ -953,6 +970,10 @@ static void pairing_button_register(struct ui_evt *evt)
 
 static void long_press_handler(struct k_work *work)
 {
+	if (!IS_ENABLED(GPS_USE_SIM)) {
+		return;
+	}
+
 	if (!atomic_get(&send_data_enable)) {
 		printk("Link not ready, long press disregarded\n");
 		return;
@@ -971,7 +992,7 @@ static void long_press_handler(struct k_work *work)
 /**@brief Initializes and submits delayed work. */
 static void work_init(void)
 {
-	k_work_init(&connect_work, app_connect);
+	k_delayed_work_init(&cloud_connect_work, app_connect);
 	k_work_init(&send_gps_data_work, send_gps_data_work_fn);
 	k_work_init(&send_button_data_work, send_button_data_work_fn);
 	k_work_init(&send_flip_data_work, send_flip_data_work_fn);
@@ -1253,16 +1274,17 @@ void handle_bsdlib_init_ret(void)
 void main(void)
 {
 	int ret;
+	struct pollfd fds[1];
 
 	printk("Asset tracker started\n");
-
-	handle_bsdlib_init_ret();
 
 	cloud_backend = cloud_get_binding("NRF_CLOUD");
 	__ASSERT(cloud_backend != NULL, "nRF Cloud backend not found");
 
 #if defined(CONFIG_LWM2M_CARRIER)
 	k_sem_take(&bsdlib_initialized, K_FOREVER);
+#else
+	handle_bsdlib_init_ret();
 #endif /* defined(CONFIG_LWM2M_CARRIER) */
 
 	ret = cloud_init(cloud_backend, cloud_event_handler);
@@ -1285,11 +1307,15 @@ void main(void)
 	work_init();
 	modem_configure();
 
-connect:
-
 #if defined(CONFIG_LWM2M_CARRIER)
 	k_sem_take(&cloud_ready_to_connect, K_FOREVER);
 #endif
+
+connect:
+
+	/* Ensure no data can be sent to cloud before connction is established.
+	 */
+	atomic_set(&send_data_enable, 0);
 
 	/* Carrier FOTA happens in the background, but it uses the TLS socket
 	 * that cloud also would use. The carrier library will reboot the device
@@ -1299,28 +1325,48 @@ connect:
 		return;
 	}
 
-	ret = cloud_connect(cloud_backend);
-	if (ret) {
-		printk("cloud_connect failed: %d\n", ret);
-		cloud_error_handler(ret);
-	} else {
-		k_delayed_work_submit(&cloud_reboot_work,
-				      CLOUD_CONNACK_WAIT_DURATION);
+	atomic_inc(&cloud_connect_count);
+
+	/* Check if max cloud connect retry count is exceeded. */
+	if (atomic_get(&cloud_connect_count) > CONFIG_CLOUD_CONNECT_COUNT_MAX) {
+		printk("The max cloud connection attempt count exceeded. \n");
+		cloud_error_handler(-ETIMEDOUT);
 	}
 
-	struct pollfd fds[] = {
-		{
-			.fd = cloud_backend->config->socket,
-			.events = POLLIN
-		}
-	};
+	printk("Connecting to cloud, attempt %d\n",
+	       atomic_get(&cloud_connect_count));
+
+	/* Attempt cloud connection. */
+	ret = cloud_connect(cloud_backend);
+	if (ret) {
+		printk("Cloud connection failed, error code %d\n", ret);
+		printk("Connection retry in %d seconds\n",
+		       CONFIG_CLOUD_CONNECT_RETRY_DELAY);
+		k_sleep(K_SECONDS(CONFIG_CLOUD_CONNECT_RETRY_DELAY));
+		goto connect;
+	} else {
+		printk("Cloud connection request sent\n");
+		printk("Connection response timeout is set to %d seconds\n",
+		       CONFIG_CLOUD_CONNECT_RETRY_DELAY);
+		k_delayed_work_submit(&cloud_connect_work,
+			K_SECONDS(CONFIG_CLOUD_CONNECT_RETRY_DELAY));
+	}
+
+	fds[0].fd = cloud_backend->config->socket;
+	fds[0].events = POLLIN;
 
 	while (true) {
 		ret = poll(fds, ARRAY_SIZE(fds),
-			K_SECONDS(CONFIG_MQTT_KEEPALIVE));
+			K_SECONDS(CONFIG_MQTT_KEEPALIVE) / 3);
 
 		if (ret < 0) {
 			printk("poll() returned an error: %d\n", ret);
+
+			if (atomic_get(&cloud_connect_count) <
+			    CONFIG_CLOUD_CONNECT_COUNT_MAX) {
+				goto connect;
+			}
+
 			cloud_error_handler(ret);
 			continue;
 		}
@@ -1341,6 +1387,11 @@ connect:
 				return;
 			}
 
+			if (atomic_get(&cloud_connect_count) <
+			    CONFIG_CLOUD_CONNECT_COUNT_MAX) {
+				goto connect;
+			}
+
 			cloud_error_handler(-EIO);
 			return;
 		}
@@ -1353,6 +1404,11 @@ connect:
 				return;
 			}
 
+			if (atomic_get(&cloud_connect_count) <
+			    CONFIG_CLOUD_CONNECT_COUNT_MAX) {
+				goto connect;
+			}
+
 			cloud_error_handler(-EIO);
 			return;
 		}
@@ -1362,6 +1418,11 @@ connect:
 
 			if (atomic_get(&carrier_requested_disconnect)) {
 				return;
+			}
+
+			if (atomic_get(&cloud_connect_count) <
+			    CONFIG_CLOUD_CONNECT_COUNT_MAX) {
+				goto connect;
 			}
 
 			cloud_error_handler(-EIO);
