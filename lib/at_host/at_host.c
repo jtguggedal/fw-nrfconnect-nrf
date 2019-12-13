@@ -17,7 +17,7 @@
 LOG_MODULE_REGISTER(at_host, CONFIG_AT_HOST_LOG_LEVEL);
 
 /* Stack definition for AT host workqueue */
-#define AT_HOST_STACK_SIZE 512
+#define AT_HOST_STACK_SIZE 1024
 K_THREAD_STACK_DEFINE(at_host_stack_area, AT_HOST_STACK_SIZE);
 
 #define CONFIG_UART_0_NAME      "UART_0"
@@ -132,9 +132,17 @@ static void uart_rx_handler(u8_t character)
 		return;
 	}
 
+	/* Detect AT command buffer overflow, leaving space for null */
+	if (at_cmd_len + 1 > sizeof(at_buf) - 1) {
+		LOG_ERR("Buffer overflow, dropping '%c'\n", character);
+	} else {
+		/* Write character to AT buffer */
+		at_buf[at_cmd_len] = character;
+		at_cmd_len++;
+	}
+
 	/*
 	 * Handle termination characters, if outside quotes.
-	 * The characters are never written to buffer unless inside quotes.
 	 */
 	if (!inside_quotes) {
 		switch (character) {
@@ -162,16 +170,6 @@ static void uart_rx_handler(u8_t character)
 		}
 		cr_state = false;
 	}
-
-	/* Detect AT command buffer overflow, leaving space for null */
-	if (at_cmd_len + 1 > sizeof(at_buf) - 1) {
-		LOG_ERR("Buffer overflow, dropping '%c'\n", character);
-		return;
-	}
-
-	/* Write character to AT buffer */
-	at_buf[at_cmd_len] = character;
-	at_cmd_len++;
 
 	/* Handle special written character */
 	if (character == '"') {
