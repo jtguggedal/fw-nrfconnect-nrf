@@ -1008,7 +1008,7 @@ static void work_init(void)
 /**@brief Configures modem to provide LTE link. Blocks until link is
  * successfully established.
  */
-static void modem_configure(void)
+static int modem_configure(void)
 {
 #if defined(CONFIG_BSD_LIBRARY)
 	if (IS_ENABLED(CONFIG_LTE_AUTO_INIT_AND_CONNECT)) {
@@ -1023,6 +1023,7 @@ static void modem_configure(void)
 	printk("This may take several minutes.\n");
 
 #if defined(CONFIG_LWM2M_CARRIER)
+#if !defined(CONFIG_GPS_USE_SIM)
 /* Usually the modem configuration is done during boot, but when LWM2M carrier
  * library is enabled, BSD library is not enabled before now, leaving the
  * configuration to the application.
@@ -1045,6 +1046,7 @@ static void modem_configure(void)
 			       cmds[i], err);
 		}
 	}
+#endif /* !defined(CONFIG_GPS_USE_SIM) */
 
 	/* Wait for the LWM2M carrier library to configure the modem and
 	 * set up the LTE connection.
@@ -1056,7 +1058,7 @@ static void modem_configure(void)
 	int err = lte_lc_init_and_connect();
 	if (err) {
 		printk("LTE link could not be established.\n");
-		error_handler(ERROR_LTE_LC, err);
+		return err;
 	}
 #endif /* defined(CONFIG_LWM2M_CARRIER) */
 #endif /* defined(CONFIG_BSD_LIBRARY) */
@@ -1064,6 +1066,8 @@ static void modem_configure(void)
 connected:
 	printk("Connected to LTE network\n");
 	ui_led_set_pattern(UI_LTE_CONNECTED);
+
+	return 0;
 }
 
 /**@brief Initializes the accelerometer device and
@@ -1305,7 +1309,16 @@ void main(void)
 	}
 
 	work_init();
-	modem_configure();
+
+lte_connect:
+       ret = modem_configure();
+       if (ret) {
+               printk("Failed to establish LTE connection.\n");
+               printk("Will retry in %d seconds.\n",
+	              CONFIG_CLOUD_CONNECT_RETRY_DELAY);
+               k_sleep(K_SECONDS(CONFIG_CLOUD_CONNECT_RETRY_DELAY));
+               goto lte_connect;
+       }
 
 #if defined(CONFIG_LWM2M_CARRIER)
 	k_sem_take(&cloud_ready_to_connect, K_FOREVER);
