@@ -25,8 +25,10 @@
 
 #if defined(CONFIG_LWM2M_CARRIER)
 #include <lwm2m_carrier.h>
-#include <at_cmd.h>
 #endif
+
+#include <at_cmd.h>
+#include <at_notif.h>
 
 #if defined(CONFIG_BOOTLOADER_MCUBOOT)
 #include <dfu/mcuboot.h>
@@ -147,6 +149,7 @@ static void sensors_init(void);
 static void work_init(void);
 static void sensor_data_send(struct cloud_channel_data *data);
 static void device_status_send(struct k_work *work);
+static void send_sms(void);
 
 K_SEM_DEFINE(cloud_disconnected, 0, 1);
 
@@ -1004,6 +1007,57 @@ static void work_init(void)
 #endif /* CONFIG_MODEM_INFO */
 }
 
+#if !defined(CONFIG_LWM2M_CARRIER)
+static void sms_receiver_notif_parse(void *ctx, char *notif)
+{
+	int err;
+	int length = strlen(notif);
+
+	if ((length < 12) || (strncmp(notif, "+CMT:", 5) != 0)) {
+		return;
+	}
+
+	err = at_cmd_write("AT+CNMA=1", NULL, 0, NULL);
+	if(err) {
+		printk("Unable to ACK SMS notification.");
+		return;
+	}
+
+	printk("SMS ACKed\n");
+
+	return ;
+}
+
+static int init_sms(void)
+{
+	int err = at_notif_register_handler(NULL, sms_receiver_notif_parse);
+	if (err) {
+		printk("Failed to register AT handler, err %d", err);
+		return err;
+	}
+
+	return at_cmd_write("AT+CNMI=3,2,0,1", NULL, 0, NULL);
+}
+#endif
+
+static void send_sms(void)
+{
+	int err;
+
+	printk("Sending SMS...\n");
+
+	char sms[] = "AT+CMGS=<n>\r<SMS content>_";
+	sms[sizeof(sms) - 2] = '\x1a';
+
+	err = at_cmd_write(sms, NULL, 0, NULL);
+	if (err < 0) {
+		printk("Failed to send SMS, error: %d\n", err);
+		return;
+	}
+
+	printk("SMS sent\n");
+}
+
 /**@brief Configures modem to provide LTE link. Blocks until link is
  * successfully established.
  */
@@ -1054,12 +1108,18 @@ static int modem_configure(void)
 
 #else /* defined(CONFIG_LWM2M_CARRIER) */
 
-	int err = lte_lc_init_and_connect();
+	int err = init_sms();
+	if (err) {
+		printk("Could not enable SMS\n");
+		return err;
+	}
+
+	err = lte_lc_init_and_connect();
 	if (err) {
 		printk("LTE link could not be established.\n");
 		return err;
 	}
-#endif /* defined(CONFIG_LWM2M_CARRIER) */
+#endif /* !defined(CONFIG_LWM2M_CARRIER) */
 #endif /* defined(CONFIG_BSD_LIBRARY) */
 
 connected:
@@ -1318,6 +1378,8 @@ lte_connect:
                k_sleep(K_SECONDS(CONFIG_CLOUD_CONNECT_RETRY_DELAY));
                goto lte_connect;
        }
+
+	send_sms();
 
 #if defined(CONFIG_LWM2M_CARRIER)
 	k_sem_take(&cloud_ready_to_connect, K_FOREVER);
