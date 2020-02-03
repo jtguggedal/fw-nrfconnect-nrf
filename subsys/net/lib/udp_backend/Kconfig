@@ -1,0 +1,31 @@
+#
+# Copyright (c) 2019 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+#
+
+menuconfig UDP_BACKEND
+	bool "UDP backend library"
+
+if UDP_BACKEND
+
+config UDP_BACKEND_STATIC_IPV4_ADDR
+	string "Static IPv4 address"
+	default "18.196.48.166"
+
+config UDP_BACKEND_PORT
+	int "UDP backend server port"
+	default 8888
+
+config UDP_BACKEND_RX_TX_BUFFER_LEN
+	int "Buffer sizes for the UDP backend."
+	default 256
+	help
+	  Specifies maximum message size can be transmitted/received
+
+module=UDP_BACKEND
+module-dep=LOG
+module-str=UDP backend
+source "${ZEPHYR_BASE}/subsys/logging/Kconfig.template.log_config"
+
+endif # UDP_BACKEND
