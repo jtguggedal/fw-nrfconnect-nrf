@@ -6,12 +6,13 @@
 
 menuconfig UDP_BACKEND
 	bool "UDP backend library"
+	select CJSON_LIB
 
 if UDP_BACKEND
 
 config UDP_BACKEND_STATIC_IPV4_ADDR
 	string "Static IPv4 address"
-	default "18.196.48.166"
+	default "3.124.128.69"
 
 config UDP_BACKEND_PORT
 	int "UDP backend server port"
@@ -19,9 +20,13 @@ config UDP_BACKEND_PORT
 
 config UDP_BACKEND_RX_TX_BUFFER_LEN
 	int "Buffer sizes for the UDP backend."
-	default 256
+	default 1024
 	help
 	  Specifies maximum message size can be transmitted/received
+
+config UDP_BACKEND_ID
+	int "Identifier used at proxy"
+	default 123
 
 module=UDP_BACKEND
 module-dep=LOG

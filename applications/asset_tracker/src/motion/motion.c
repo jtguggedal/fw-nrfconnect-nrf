@@ -169,7 +169,7 @@ int motion_init_and_start(struct k_work_q *work_q,
 		return err;
 	}
 
-	sensor_trigger_handler(NULL, NULL);
+	//sensor_trigger_handler(NULL, NULL);
 	return 0;
 }
 

@@ -56,13 +56,13 @@ LOG_MODULE_REGISTER(asset_tracker, CONFIG_ASSET_TRACKER_LOG_LEVEL);
 
 #if defined(CONFIG_BSD_LIBRARY) && \
 !defined(CONFIG_LTE_LINK_CONTROL)
-#error "Missing CONFIG_LTE_LINK_CONTROL"
+#error "Missing CONFIG_LTE_LINK_CONTROL"
 #endif
 
 #if defined(CONFIG_BSD_LIBRARY) && \
 defined(CONFIG_LTE_AUTO_INIT_AND_CONNECT) && \
 defined(CONFIG_NRF_CLOUD_PROVISION_CERTIFICATES)
-#error "PROVISION_CERTIFICATES \
+#error "PROVISION_CERTIFICATES \
 	requires CONFIG_LTE_AUTO_INIT_AND_CONNECT to be disabled!"
 #endif
 
@@ -1157,7 +1157,7 @@ void main(void)
 	}
 	handle_bsdlib_init_ret();
 
-	cloud_backend = cloud_get_binding("NRF_CLOUD");
+	cloud_backend = cloud_get_binding("UDP_BACKEND");
 	__ASSERT(cloud_backend != NULL, "nRF Cloud backend not found");
 
 	ret = cloud_init(cloud_backend, cloud_event_handler);
@@ -1185,10 +1185,10 @@ connect:
 		LOG_ERR("cloud_connect failed: %d", ret);
 		cloud_error_handler(ret);
 	} else {
-		atomic_set(&reconnect_to_cloud, 0);
+/*		atomic_set(&reconnect_to_cloud, 0);
 		k_delayed_work_submit_to_queue(&application_work_q,
 					       &cloud_reboot_work,
-					       CLOUD_CONNACK_WAIT_DURATION);
+					       CLOUD_CONNACK_WAIT_DURATION);*/
 	}
 
 	struct pollfd fds[] = {
@@ -1208,7 +1208,9 @@ connect:
 		}
 
 		if (ret == 0) {
-			cloud_ping(cloud_backend);
+			if (!gps_control_is_active()) {
+				cloud_ping(cloud_backend);
+			}
 			continue;
 		}
 

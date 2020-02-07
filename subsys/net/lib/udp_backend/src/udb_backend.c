@@ -9,6 +9,7 @@
 LOG_MODULE_REGISTER(UDP_backend, CONFIG_UDP_BACKEND_LOG_LEVEL);
 
 static char rx_buffer[CONFIG_UDP_BACKEND_RX_TX_BUFFER_LEN];
+static char tx_buffer[CONFIG_UDP_BACKEND_RX_TX_BUFFER_LEN];
 
 static struct sockaddr_in host_addr;
 static struct sockaddr_in local_addr;
@@ -70,6 +71,10 @@ int udp_backend_send(const struct udp_backend_tx_data *const tx_data)
 {
 	int err=send(client_fd, tx_data->str, tx_data->len, 0);
 	if(err < 0) {
+		if(err == -1)
+		{
+
+		}
 		return err;
 	}
 	else {
@@ -163,12 +168,28 @@ static int c_disconnect(const struct cloud_backend *const backend)
 static int c_send(const struct cloud_backend *const backend,
 		  const struct cloud_msg *const msg)
 {
+	int prefixlen = snprintf(tx_buffer, sizeof(tx_buffer), "%d:",
+		CONFIG_UDP_BACKEND_ID);
+	memcpy(tx_buffer + prefixlen, msg->buf, msg->len);
+	
 	struct udp_backend_tx_data tx_data = {
-		.str = msg->buf,
-		.len = msg->len,
+		.str = tx_buffer,
+		.len = msg->len + prefixlen,
 	};
 
 	int err= udp_backend_send(&tx_data);
+	if(err == -1)
+	{
+		udp_backend_disconnect();
+		err = udp_backend_connect(NULL);
+		if (err) {
+			return err;
+		}
+
+		backend->config->socket = client_fd;
+		err= udp_backend_send(&tx_data);
+
+	}
 	if (!err) {
 		struct cloud_event sent_event = {
 			.type = CLOUD_EVT_DATA_SENT,

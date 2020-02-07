@@ -722,7 +722,7 @@ int cloud_decode_command(char const *input)
 int cloud_decode_init(cloud_cmd_cb_t cb)
 {
 	cloud_command_cb = cb;
-
+	cJSON_Init();
 	return 0;
 }
 
@@ -786,7 +786,7 @@ int cloud_encode_motion_data(const motion_data_t *motion_data,
 		return -1;
 	}
 
-	cloud_sensor.data.len = sizeof(cloud_sensor.data.buf) - 1;
+	cloud_sensor.data.len = strlen(cloud_sensor.data.buf)+1;
 
 	return cloud_encode_data(&cloud_sensor, CLOUD_CMD_GROUP_DATA, output);
 
