@@ -3,6 +3,7 @@
 #include <net/cloud.h>
 #include <net/cloud_backend.h>
 #include <stdio.h>
+#include <at_cmd.h>
 
 #include <logging/log.h>
 
@@ -14,6 +15,7 @@ static char tx_buffer[CONFIG_UDP_BACKEND_RX_TX_BUFFER_LEN];
 static struct sockaddr_in host_addr;
 static struct sockaddr_in local_addr;
 static int client_fd;
+static char client_id[20];
 
 #if !defined(CONFIG_CLOUD_API)
 static udp_backend_evt_handler_t module_evt_handler;
@@ -63,7 +65,6 @@ int udp_backend_ping(void)
 
 int udp_backend_input(void)
 {
-	
 	return recv(client_fd, rx_buffer, CONFIG_UDP_BACKEND_RX_TX_BUFFER_LEN, MSG_DONTWAIT);
 }
 
@@ -130,6 +131,23 @@ int udp_backend_init(const struct udp_backend_config *const config,
 static int c_init(const struct cloud_backend *const backend,
 		  cloud_evt_handler_t handler)
 {
+	int err;
+	char imei[20];
+
+	err = at_cmd_write("AT+CGSN", imei, sizeof(imei), NULL);
+	if (err) {
+		LOG_ERR("Could not obtain IMEI to generate device ID, err: %d",
+			err);
+		return err;
+	}
+
+	memcpy(client_id, &imei[8], 7);
+
+	/* Just to be safe */
+	client_id[7] = '\0';
+
+	LOG_DBG("UDP backend ID: %s", log_strdup(client_id));
+
 	backend->config->handler = handler;
 	udp_backend_backend = (struct cloud_backend *)backend;
 
@@ -168,10 +186,10 @@ static int c_disconnect(const struct cloud_backend *const backend)
 static int c_send(const struct cloud_backend *const backend,
 		  const struct cloud_msg *const msg)
 {
-	int prefixlen = snprintf(tx_buffer, sizeof(tx_buffer), "%d:",
-		CONFIG_UDP_BACKEND_ID);
+	int prefixlen = snprintf(tx_buffer, sizeof(tx_buffer), "%s:",
+				 client_id);
 	memcpy(tx_buffer + prefixlen, msg->buf, msg->len);
-	
+
 	struct udp_backend_tx_data tx_data = {
 		.str = tx_buffer,
 		.len = msg->len + prefixlen,
