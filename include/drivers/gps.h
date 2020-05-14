@@ -360,6 +360,19 @@ static inline int gps_deinit(struct device *dev)
 	return api->deinit(dev);
 }
 
+/**
+ * @brief Function to request A-GPS data.
+ *
+ * @param request Assistance data to request from A-GPS service.
+ * @param socket Pointer to GPS socket to which assistance data will be written
+ *		 when it's received from the selected A-GPS service.
+ *		 If NULL, GPS driver will be used to write the data instead of
+ *		 directly to socket.
+ *
+ * @return Zero on success or (negative) error code otherwise.
+ */
+int gps_agps_request(struct gps_agps_request request, int *soket);
+
 #ifdef __cplusplus
 }
 #endif
