@@ -362,11 +362,12 @@ void cloud_error_handler(int err)
 	error_handler(ERROR_CLOUD, err);
 }
 
+static struct gps_agps_request agps_request;
+
 static void send_agps_request(struct k_work *work)
 {
 	ARG_UNUSED(work);
 
-#if defined(CONFIG_NRF_CLOUD_AGPS)
 	int err;
 	static s64_t last_request_timestamp;
 
@@ -379,16 +380,13 @@ static void send_agps_request(struct k_work *work)
 
 	LOG_INF("Sending A-GPS request");
 
-	err = nrf_cloud_agps_request_all();
+	err = gps_agps_request(agps_request, NULL);
 	if (err) {
-		LOG_ERR("A-GPS request failed, error: %d", err);
+		LOG_ERR("Failed to request A-GPS data, error: %d", err);
 		return;
 	}
 
 	last_request_timestamp = k_uptime_get();
-
-	LOG_INF("A-GPS request sent");
-#endif /* defined(CONFIG_NRF_CLOUD_AGPS) */
 }
 
 void cloud_connect_error_handler(enum cloud_connect_result err)
@@ -673,6 +671,8 @@ static void gps_handler(struct device *dev, struct gps_event *evt)
 		break;
 	case GPS_EVT_AGPS_DATA_NEEDED:
 		LOG_INF("GPS_EVT_AGPS_DATA_NEEDED");
+		memcpy(&agps_request, &evt->agps_request,
+		       sizeof(agps_request));
 		k_work_submit_to_queue(&application_work_q,
 				       &send_agps_request_work);
 		break;
@@ -771,8 +771,6 @@ static void motion_trigger_gps(motion_data_t  motion_data)
 
 		LOG_INF("starting GPS in %lld seconds", time_to_start_next_fix);
 		gps_control_start((uint32_t)K_SECONDS(time_to_start_next_fix));
-		k_work_submit_to_queue(&application_work_q,
-				       &send_agps_request_work);
 	}
 }
 #endif
@@ -1076,8 +1074,6 @@ static void device_config_send(struct k_work *work)
 	}
 
 	if (gps_cfg_state == CLOUD_CMD_STATE_TRUE) {
-		k_work_submit_to_queue(&application_work_q,
-						&send_agps_request_work);
 		gps_control_start(K_NO_WAIT);
 	}
 }
