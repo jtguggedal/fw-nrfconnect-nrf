@@ -71,6 +71,7 @@ static void gps_start_work_fn(struct k_work *work)
 	start_search_timestamp = k_uptime_get();
 }
 
+#ifdef CONFIG_NRF_CLOUD_AGPS
 static void process_agps_data(char *buf, size_t len)
 {
 	int err;
@@ -83,21 +84,18 @@ static void process_agps_data(char *buf, size_t len)
 		LOG_INF("A-GPS data successfully processed");
 		LOG_INF("GPS will start in 3 seconds");
 	}
-
-	k_delayed_work_submit(&gps_start_work, K_SECONDS(3));
 }
+#endif /* CONFIG_NRF_CLOUD_AGPS */
 
-static void on_ready_evt(void)
+static void on_agps_needed(struct gps_agps_request request)
 {
 	int err;
 
-	err = nrf_cloud_agps_request_all();
+	err = gps_agps_request(request, NULL);
 	if (err) {
 		LOG_ERR("Failed to request A-GPS data, error: %d", err);
 		return;
 	}
-
-	LOG_DBG("A-GPS data request sent, waiting for response");
 }
 
 static void cloud_event_handler(const struct cloud_backend *const backend,
@@ -109,11 +107,11 @@ static void cloud_event_handler(const struct cloud_backend *const backend,
 
 	switch (evt->type) {
 	case CLOUD_EVT_CONNECTED:
-		LOG_DBG("CLOUD_EVT_CONNECTED");
+		LOG_INF("CLOUD_EVT_CONNECTED");
 		break;
 	case CLOUD_EVT_READY:
-		LOG_DBG("CLOUD_EVT_READY");
-		on_ready_evt();
+		LOG_INF("CLOUD_EVT_READY");
+		k_delayed_work_submit(&gps_start_work, K_SECONDS(3));
 		break;
 	case CLOUD_EVT_DISCONNECTED:
 		LOG_DBG("CLOUD_EVT_DISCONNECTED");
@@ -125,7 +123,7 @@ static void cloud_event_handler(const struct cloud_backend *const backend,
 		LOG_DBG("CLOUD_EVT_DATA_SENT");
 		break;
 	case CLOUD_EVT_DATA_RECEIVED:
-		LOG_DBG("CLOUD_EVT_DATA_RECEIVED");
+		LOG_INF("CLOUD_EVT_DATA_RECEIVED");
 
 		/* Convenience functionality for remote testing.
 		 * The device is reset if it receives "{"reboot":true}"
@@ -143,16 +141,18 @@ static void cloud_event_handler(const struct cloud_backend *const backend,
 			break;
 		}
 
+#if IS_ENABLED(CONFIG_NRF_CLOUD_AGPS)
 		process_agps_data(evt->data.msg.buf, evt->data.msg.len);
+#endif
 		break;
 	case CLOUD_EVT_PAIR_REQUEST:
-		LOG_DBG("CLOUD_EVT_PAIR_REQUEST");
+		LOG_INF("CLOUD_EVT_PAIR_REQUEST");
 		break;
 	case CLOUD_EVT_PAIR_DONE:
-		LOG_DBG("CLOUD_EVT_PAIR_DONE");
+		LOG_INF("CLOUD_EVT_PAIR_DONE");
 		break;
 	case CLOUD_EVT_FOTA_DONE:
-		LOG_DBG("CLOUD_EVT_FOTA_DONE");
+		LOG_INF("CLOUD_EVT_FOTA_DONE");
 		break;
 	default:
 		LOG_DBG("Unknown cloud event type: %d", evt->type);
@@ -166,13 +166,13 @@ static void print_pvt_data(struct gps_pvt *pvt_data)
 	size_t len;
 
 	len = snprintf(buf, sizeof(buf),
-		      "Longitude:  %f\n"
-		      "Latitude:   %f\n"
-		      "Altitude:   %f\n"
-		      "Speed:      %f\n"
-		      "Heading:    %f\n"
-		      "Date:       %02u-%02u-%02u\n"
-		      "Time (UTC): %02u:%02u:%02u\n",
+		      "\r\n\tLongitude:  %f\r\n\t"
+		      "Latitude:   %f\r\n\t"
+		      "Altitude:   %f\r\n\t"
+		      "Speed:      %f\r\n\t"
+		      "Heading:    %f\r\n\t"
+		      "Date:       %02u-%02u-%02u\r\n\t"
+		      "Time (UTC): %02u:%02u:%02u\r\n",
 		      pvt_data->longitude, pvt_data->latitude,
 		      pvt_data->altitude, pvt_data->speed, pvt_data->heading,
 		      pvt_data->datetime.day, pvt_data->datetime.month,
@@ -267,22 +267,23 @@ static void gps_handler(struct device *dev, struct gps_event *evt)
 
 	switch (evt->type) {
 	case GPS_EVT_SEARCH_STARTED:
-		LOG_DBG("GPS_EVT_SEARCH_STARTED");
+		LOG_INF("GPS_EVT_SEARCH_STARTED");
 		break;
 	case GPS_EVT_SEARCH_STOPPED:
-		LOG_DBG("GPS_EVT_SEARCH_STOPPED");
+		LOG_INF("GPS_EVT_SEARCH_STOPPED");
 		break;
 	case GPS_EVT_SEARCH_TIMEOUT:
-		LOG_DBG("GPS_EVT_SEARCH_TIMEOUT");
+		LOG_INF("GPS_EVT_SEARCH_TIMEOUT");
 		break;
 	case GPS_EVT_OPERATION_BLOCKED:
-		LOG_DBG("GPS_EVT_OPERATION_BLOCKED");
+		LOG_INF("GPS_EVT_OPERATION_BLOCKED");
 		break;
 	case GPS_EVT_OPERATION_UNBLOCKED:
-		LOG_DBG("GPS_EVT_OPERATION_UNBLOCKED");
+		LOG_INF("GPS_EVT_OPERATION_UNBLOCKED");
 		break;
 	case GPS_EVT_AGPS_DATA_NEEDED:
-		LOG_DBG("GPS_EVT_AGPS_DATA_NEEDED");
+		LOG_INF("GPS_EVT_AGPS_DATA_NEEDED");
+		on_agps_needed(evt->agps_request);
 		break;
 	case GPS_EVT_PVT:
 		print_satellite_stats(&evt->pvt);
@@ -365,14 +366,7 @@ void main(void)
 {
 	int err;
 
-	/* By default POLLERR, POLLNVAL and POLLUHP are alway polled for */
-	struct pollfd fds[] = {
-		{
-			.events = POLLIN
-		}
-	};
-
-	LOG_INF("nRF Cloud and A-GPS sample has started");
+	LOG_INF("A-GPS sample has started");
 
 	cloud_backend = cloud_get_binding("NRF_CLOUD");
 	__ASSERT(cloud_backend, "Could not get binding to cloud backend");
@@ -417,44 +411,8 @@ void main(void)
 		return;
 	}
 
-	/* After successful cloud_connect(), the cloud socket is created and
-	 * can now be put into the file descriptor array.
+	/* The cloud connection is polled in a thread in the backend.
+	 * Events will be received to cloud_event_handler() when data is
+	 * received from the cloud.
 	 */
-	fds[0].fd = cloud_backend->config->socket;
-
-	while (true) {
-		err = poll(fds, ARRAY_SIZE(fds),
-			   cloud_keepalive_time_left(cloud_backend));
-		if (err < 0) {
-			LOG_ERR("poll() returned an error: %d", err);
-			continue;
-		}
-
-		if (err == 0) {
-			(void)cloud_ping(cloud_backend);
-			continue;
-		}
-
-		if ((fds[0].revents & POLLIN) == POLLIN) {
-			(void)cloud_input(cloud_backend);
-		}
-
-		if ((fds[0].revents & POLLNVAL) == POLLNVAL) {
-			LOG_ERR("Socket error: POLLNVAL");
-			LOG_ERR("The cloud socket was unexpectedly closed");
-			return;
-		}
-
-		if ((fds[0].revents & POLLHUP) == POLLHUP) {
-			LOG_ERR("Socket error: POLLHUP");
-			LOG_ERR("Connection was closed, possibly by cloud");
-			return;
-		}
-
-		if ((fds[0].revents & POLLERR) == POLLERR) {
-			LOG_ERR("Socket error: POLLERR");
-			LOG_ERR("Cloud connection was unexpectedly closed");
-			return;
-		}
-	}
 }
