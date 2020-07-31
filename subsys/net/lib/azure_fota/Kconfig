@@ -1,0 +1,41 @@
+#
+# Copyright (c) 2020 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-BSD-5-Clause-Nordic
+#
+
+menuconfig AZURE_FOTA
+	bool "Azure FOTA library"
+	depends on FOTA_DOWNLOAD
+	depends on CJSON_LIB
+	select DOWNLOAD_CLIENT_TLS
+
+if AZURE_FOTA
+
+config AZURE_FOTA_PAYLOAD_SIZE
+	int "MQTT payload reception buffer size for Azure FOTA messages"
+	default 1350
+
+config AZURE_FOTA_HOSTNAME_MAX_LEN
+	int "Hostname buffer size"
+	default 255
+
+config AZURE_FOTA_FILE_PATH_MAX_LEN
+	int "File path buffer size"
+	default 255
+
+config AZURE_FOTA_DOWNLOAD_SECURITY_TAG
+	int "Security tag to be used for downloads"
+	default 42
+
+config AZURE_FOTA_DOWNLOAD_PORT
+	int "Port number"
+	default 443
+
+module=AZURE_FOTA
+module-dep=LOG
+module-str=Log level for Azure FOTA
+module-help=Enables Azure FOTA log messages.
+source "${ZEPHYR_BASE}/subsys/logging/Kconfig.template.log_config"
+
+endif # AZURE_FOTA
