@@ -353,6 +353,8 @@ static void mqtt_evt_handler(struct mqtt_client *const c,
 	struct azure_iot_hub_evt evt = { 0 };
 	bool notify = false;
 
+	// TODO: Clean up function and break it up to make it more readable
+
 	switch (mqtt_evt->type) {
 	case MQTT_EVT_CONNACK:
 		if (mqtt_evt->param.connack.return_code !=
@@ -513,9 +515,9 @@ static void mqtt_evt_handler(struct mqtt_client *const c,
 				evt.type = AZURE_IOT_HUB_EVT_TWIN_RESULT_FAIL;
 				break;
 			}
-
-			notify = true;
 		}
+
+		notify = true;
 
 		break;
 	};
