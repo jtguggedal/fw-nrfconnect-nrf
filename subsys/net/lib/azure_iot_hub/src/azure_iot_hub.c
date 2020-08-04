@@ -1204,7 +1204,7 @@ int azure_iot_hub_init(const struct azure_iot_hub_config *config,
 
 int azure_iot_hub_method_respond(struct azure_iot_hub_result *result)
 {
-	static ssize_t len;
+	ssize_t len;
 	static char topic[100];
 	struct mqtt_publish_param param = {
 		.message.payload.data = result->payload,
@@ -1212,13 +1212,11 @@ int azure_iot_hub_method_respond(struct azure_iot_hub_result *result)
 		.message.topic.topic.utf8 = topic,
 	};
 
-	if (len == 0) {
-		len = snprintk(topic, sizeof(topic), TOPIC_DIRECT_METHOD_RES,
-			       result->status, result->rid);
-		if ((len < 0) || (len > sizeof(topic))) {
-			LOG_ERR("Failed to create method result topic");
-			return -ENOMEM;
-		}
+	len = snprintk(topic, sizeof(topic), TOPIC_DIRECT_METHOD_RES,
+			result->status, result->rid);
+	if ((len < 0) || (len > sizeof(topic))) {
+		LOG_ERR("Failed to create method result topic");
+		return -ENOMEM;
 	}
 
 	param.message.topic.topic.size = len;
