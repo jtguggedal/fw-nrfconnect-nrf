@@ -48,6 +48,13 @@ static bool           got_first_fix;
 static bool           update_terminal;
 static u64_t          fix_timestamp;
 nrf_gnss_data_frame_t last_fix;
+static nrf_gnss_data_frame_t agps_data;
+static struct k_work agps_work;
+
+K_THREAD_STACK_DEFINE(agps_stack, 8192);
+static struct k_work_q agps_queue;
+static bool awaiting_agps;
+
 
 K_SEM_DEFINE(lte_ready, 0, 1);
 
@@ -193,6 +200,10 @@ static void print_satellite_stats(nrf_gnss_data_frame_t *pvt_data)
 	u8_t  in_fix           = 0;
 	u8_t  unhealthy        = 0;
 
+	if (awaiting_agps) {
+		return;
+	}
+
 	for (int i = 0; i < NRF_GNSS_MAX_SATELLITES; ++i) {
 
 		if ((pvt_data->pvt.sv[i].sv > 0) &&
@@ -233,6 +244,28 @@ static void print_pvt_data(nrf_gnss_data_frame_t *pvt_data)
 	printk("Time (UTC): %02u:%02u:%02u\n", pvt_data->pvt.datetime.hour,
 					       pvt_data->pvt.datetime.minute,
 					      pvt_data->pvt.datetime.seconds);
+}
+
+static void agps_work_fn(struct k_work *work)
+{
+	ARG_UNUSED(work);
+
+
+	printk("\033[1;1H");
+	printk("\033[2J");
+	printk("New AGPS data requested, contacting SUPL server, flags %d\n",
+		agps_data.agps.data_flags);
+	activate_lte(true);
+	printk("Established LTE link\n");
+	if (open_supl_socket() == 0) {
+		printf("Starting SUPL session\n");
+		supl_session(&agps_data.agps);
+		printk("Done\n");
+		close_supl_socket();
+	}
+	activate_lte(false);
+	k_sleep(K_SECONDS(2));
+	awaiting_agps = false;
 }
 
 static void print_nmea_data(void)
@@ -286,20 +319,8 @@ int process_gps_data(nrf_gnss_data_frame_t *gps_data)
 
 		case NRF_GNSS_AGPS_DATA_ID:
 #ifdef CONFIG_SUPL_CLIENT_LIB
-			printk("\033[1;1H");
-			printk("\033[2J");
-			printk("New AGPS data requested, contacting SUPL server, flags %d\n",
-			       gps_data->agps.data_flags);
-			activate_lte(true);
-			printk("Established LTE link\n");
-			if (open_supl_socket() == 0) {
-				printf("Starting SUPL session\n");
-				supl_session(&gps_data->agps);
-				printk("Done\n");
-				close_supl_socket();
-			}
-			activate_lte(false);
-			k_sleep(K_MSEC(2000));
+			memcpy(&agps_data, gps_data, sizeof(agps_data));
+			k_work_submit_to_queue(&agps_queue, &agps_work);
 #endif
 			break;
 
@@ -343,6 +364,11 @@ int main(void)
 	nrf_gnss_data_frame_t gps_data;
 	u8_t		      cnt = 0;
 
+	k_work_init(&agps_work, agps_work_fn);
+	k_work_q_start(&agps_queue, agps_stack,
+		       K_THREAD_STACK_SIZEOF(agps_stack),
+		       K_LOWEST_APPLICATION_THREAD_PRIO);
+
 #ifdef CONFIG_SUPL_CLIENT_LIB
 	static struct supl_api supl_api = {
 		.read       = supl_read,
@@ -360,6 +386,8 @@ int main(void)
 	}
 
 #ifdef CONFIG_SUPL_CLIENT_LIB
+	awaiting_agps = true;
+
 	int rc = supl_init(&supl_api);
 
 	if (rc != 0) {
@@ -379,11 +407,13 @@ int main(void)
 
 		if (!got_first_fix) {
 			cnt++;
-			printk("\033[1;1H");
-			printk("\033[2J");
-			print_satellite_stats(&gps_data);
-			printk("\nScanning [%c] ",
-					update_indicator[cnt%4]);
+			if (!awaiting_agps) {
+				printk("\033[1;1H");
+				printk("\033[2J");
+				print_satellite_stats(&gps_data);
+				printk("\nScanning [%c] ",
+						update_indicator[cnt%4]);
+			}
 		}
 
 		if (((k_uptime_get() - fix_timestamp) >= 1) &&
