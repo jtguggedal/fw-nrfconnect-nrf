@@ -256,6 +256,18 @@ void profiler_log_encode_u32(struct log_event_buf *buf, uint32_t data)
 	buf->payload += sizeof(data);
 }
 
+void profiler_log_encode_string(struct log_event_buf *buf, char *str,
+				size_t str_len)
+{
+	__ASSERT_NO_MSG(buf->payload - buf->payload_start + str_len +
+			1 <= CONFIG_PROFILER_CUSTOM_EVENT_BUF_LEN);
+
+	memcpy(buf->payload, str, str_len);
+	buf->payload[str_len] = '\n';
+
+	buf->payload += (str_len + 1);
+}
+
 void profiler_log_add_mem_address(struct log_event_buf *buf,
 				  const void *mem_address)
 {

@@ -159,6 +159,27 @@ static inline void profiler_log_encode_u32(struct log_event_buf *buf,
 #endif
 
 
+/** @brief Encode and add string to a buffer. A newline character ('\n') will
+ *	   be appended to the buffer passed to this function to signal the end
+ =	   of the string.
+ *
+ * @warning The buffer must be initialized with @ref profiler_log_start
+ *          before calling this function.
+ *
+ * @param data Data to add to the buffer.
+ * @param str Pointer to the string.
+ * @param str_len Length of the string.
+ */
+#ifdef CONFIG_PROFILER
+void profiler_log_encode_string(struct log_event_buf *buf, char *str,
+				size_t str_len);
+#else
+static inline void profiler_log_encode_string(struct log_event_buf *buf,
+					      char *str,
+					      size_t str_len);
+#endif
+
+
 /** @brief Encode and add the event's address in memory to the buffer.
  *
  * This information is used for event identification.
