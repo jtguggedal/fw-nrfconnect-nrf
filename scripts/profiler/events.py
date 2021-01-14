@@ -114,7 +114,7 @@ class EventsData():
                     timestamp = float(row['timestamp'])
                     # reading event data from single row in csv file
                     if (row['data'][1:-1] != ''):
-                        data = list(map(int, (row['data'][1:-1].split(','))))
+                        data = row['data'].strip('[]').replace("'", '').replace(' ', '').split(',')
                     else:
                         data = []
                     ev = Event(type_id, timestamp, data)

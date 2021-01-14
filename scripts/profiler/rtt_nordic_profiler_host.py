@@ -137,7 +137,32 @@ class RttNordicProfilerHost:
                 buf = buf + tbuf[0:size]
                 self.bufs[0] = tbuf[size:]
         self.bcnt -= num_bytes
+
         return buf
+
+    def _get_buffered_string(self):
+        tbuf = self.bufs[0]
+        limit = 0
+        found = False
+
+        for val in tbuf:
+            limit += 1
+            if chr(val) == '\0':
+                found = True
+                break
+
+        if not found:
+            self.logger.error("No newline found in string")
+            return None
+
+        string = tbuf[:limit - 1].decode("utf-8")
+        size = len(string) + len('\0')
+
+        self.bufs[0] = tbuf[size:]
+
+        self.bcnt -= size
+
+        return string
 
     def _read_bytes(self, num_bytes):
         now = time.time()
@@ -258,8 +283,14 @@ class RttNordicProfilerHost:
         data = []
         for i in et.data_types:
             signum = False
-            if i[0] == 's':
+
+            if i in ('s8', 's16', 's32'):
                 signum = True
+            elif i == "s":
+                string = self._get_buffered_string()
+                data.append(string)
+                break
+
             buf = self._read_bytes(4)
             data.append(int.from_bytes(buf, byteorder=self.config['byteorder'],
                                        signed=signum))

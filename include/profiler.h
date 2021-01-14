@@ -159,7 +159,7 @@ static inline void profiler_log_encode_u32(struct log_event_buf *buf,
 #endif
 
 
-/** @brief Encode and add string to a buffer. A newline character ('\n') will
+/** @brief Encode and add string to a buffer. A null character ('\0') will
  *	   be appended to the buffer passed to this function to signal the end
  =	   of the string.
  *

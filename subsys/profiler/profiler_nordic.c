@@ -263,7 +263,7 @@ void profiler_log_encode_string(struct log_event_buf *buf, char *str,
 			1 <= CONFIG_PROFILER_CUSTOM_EVENT_BUF_LEN);
 
 	memcpy(buf->payload, str, str_len);
-	buf->payload[str_len] = '\n';
+	buf->payload[str_len] = '\0';
 
 	buf->payload += (str_len + 1);
 }
