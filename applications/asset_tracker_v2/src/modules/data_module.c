@@ -634,13 +634,7 @@ static void on_cloud_state_connected(struct data_msg_data *msg)
 				new.gps_timeout);
 		}
 
-		/* Only apply a new Active wait timeout or movement resolution
-		 * if the new corresponding values exceeds the current
-		 * GPS timeout value + 10 seconds. This is to hinder requesting
-		 * GPS data from the GPS module in the middle of a GPS search.
-		 */
-		if ((new.active_wait_timeout > current_cfg.gps_timeout + 10) &&
-		    (new.active_wait_timeout > 0)) {
+		if (new.active_wait_timeout > 0) {
 			if (current_cfg.active_wait_timeout !=
 			    new.active_wait_timeout) {
 				current_cfg.active_wait_timeout =
@@ -654,8 +648,7 @@ static void on_cloud_state_connected(struct data_msg_data *msg)
 				new.active_wait_timeout);
 		}
 
-		if ((new.movement_resolution > current_cfg.gps_timeout + 10) &&
-		    (new.movement_resolution > 0)) {
+		if (new.movement_resolution > 0) {
 			if (current_cfg.movement_resolution !=
 			    new.movement_resolution) {
 				current_cfg.movement_resolution =

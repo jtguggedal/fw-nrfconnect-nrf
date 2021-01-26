@@ -441,6 +441,7 @@ void main(void)
 
 #if defined(CONFIG_WATCHDOG_APPLICATION)
 	int err = watchdog_init_and_start();
+
 	if (err) {
 		LOG_DBG("watchdog_init_and_start, error: %d", err);
 		SEND_ERROR(app, APP_EVT_ERROR, err);

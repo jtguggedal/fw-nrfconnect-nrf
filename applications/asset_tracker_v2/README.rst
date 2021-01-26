@@ -88,15 +88,15 @@ The device mode is a part of the application's real-time configurations listed i
 The following flow charts show how the application acts in its active and passive states, illustrating the relationship between data sampling, publishing, and device configurations.
 Non-essential configurations to this relationship are abstracted away for simplicity.
 
-.. figure:: ./images/active_mode.svg
-    :alt: Active mode flow chart
+.. figure:: /images/asset_tracker_v2_active_state.svg
+    :alt: Active state flow chart
 
     Active state flow chart
 
 In the active state, the application samples and published data at regular intervals set by the *Active wait timeout* configuration.
 
-.. figure:: ./images/passive_mode.svg
-    :alt: Passive mode flow chart
+.. figure:: /images/asset_tracker_v2_passive_state.svg
+    :alt: Passive state flow chart
 
     Passive state flow chart
 
@@ -167,11 +167,10 @@ Requirements
 The application supports the following development kits:
 
 .. table-from-rows:: /includes/sample_board_rows.txt
-:header: heading
-:rows: thingy91_nrf9160ns, nrf9160dk_nrf9160ns
+   :header: heading
+   :rows: thingy91_nrf9160ns, nrf9160dk_nrf9160ns
 
 .. include:: /includes/spm.txt
-
 
 Firmware architecture
 *********************
@@ -184,7 +183,10 @@ The processing happens either in a dedicated processing thread in the module, or
 
 The figure below shows the relationship between modules and the event manager, and also shows which modules have thread and which don't.
 
-< Figure >
+.. figure:: /images/asset_tracker_v2_module_hierarchy.svg
+    :alt: Module hierarchy
+
+    Relationship between modules and the event manager.
 
 
 Modules
@@ -198,10 +200,10 @@ Modules may also receive events from other sources, such as drivers and librarie
 The cloud module will for instance also receive events from the configured cloud backend.
 These events will also be converted to messages and either queued in the case of the cloud module, or processed directly for modules that do not have a processing thread.
 
-< Figure: Module with thread >
+.. figure:: /images/asset_tracker_v2_module_structure.svg
+    :alt: Event handling in modules
 
-< Figure: Module without thread >
-
+    Event handling in modules
 
 Thread usage
 ============
@@ -298,12 +300,12 @@ Please read the documentation for the respective cloud library before trying to 
    :widths: auto
    :align: center
 
-   +---------------+---------------+------------------------------------+------------------------------+
-   | Cloud service | NCS library   | Configurations                               | Documentation      |
-   +===============+===============+====================================+==============================+
-   | AWS IoT Core  | 'lib_aws_iot' |  * :option:`CONFIG_AWS_IOT_BROKER_HOST_NAME` | :ref:`lib_aws_iot` |
-   |               |               |  * :option:`CONFIG_AWS_IOT_SEC_TAG`          |                    |
-   +---------------+---------------+------------------------------------+------------------------------+
+   +---------------+---------------+-------------------------------------------+-------------------------+
+   | Cloud service | NCS library   | Configurations                            | Documentation link      |
+   +===============+===============+===========================================+=========================+
+   | AWS IoT Core  | 'lib_aws_iot' | :option:`CONFIG_AWS_IOT_BROKER_HOST_NAME` | :ref:`lib_aws_iot`      |
+   |               |               | :option:`CONFIG_AWS_IOT_SEC_TAG`          |                         |
+   +---------------+---------------+-------------------------------------------+-------------------------+
 
 .. note::
    By default, the application uses the nRF9160s IMEI as the client ID in the cloud connection.
@@ -368,19 +370,19 @@ After programming the application and all prerequisites to your board, test the 
       *** Booting Zephyr OS build v2.4.0-ncs1-2616-g3420cde0e37b  ***
       <inf> event_manager: APP_EVT_START
 
-#. Observe in the terminal window that LTE connection is established, indicated by:
+#. Observe in the terminal window that LTE connection is established, indicated by::
 
      <inf> event_manager: MODEM_EVT_LTE_CONNECTING
      ...
      <inf> event_manager: MODEM_EVT_LTE_CONNECTED
 
-#. Observe that the device establishes connection to cloud:
+#. Observe that the device establishes connection to cloud::
 
     <inf> event_manager: CLOUD_EVT_CONNECTING
     ...
     <inf> event_manager: CLOUD_EVT_CONNECTED
 
-#. Observe periodic data sampling and sending to cloud:
+#. Observe periodic data sampling and sending to cloud::
 
     <inf> event_manager: APP_EVT_DATA_GET_ALL
     <inf> event_manager: APP_EVT_DATA_GET - Requested data types (MOD_DYN, BAT, ENV, GNSS)
