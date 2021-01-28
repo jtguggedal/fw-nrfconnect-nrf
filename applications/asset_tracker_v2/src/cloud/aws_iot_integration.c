@@ -8,10 +8,10 @@
 #include <logging/log.h>
 LOG_MODULE_REGISTER(MODULE, CONFIG_CLOUD_INTEGRATION_LOG_LEVEL);
 
-#if !defined(CONFIG_USE_CUSTOM_MQTT_CLIENT_ID)
+#if !defined(CONFIG_CLOUD_CLIENT_ID_USE_CUSTOM)
 #define AWS_CLOUD_CLIENT_ID_LEN 15
 #else
-#define AWS_CLOUD_CLIENT_ID_LEN (sizeof(CONFIG_MQTT_CLIENT_ID) - 1)
+#define AWS_CLOUD_CLIENT_ID_LEN (sizeof(CONFIG_CLOUD_CLIENT_ID) - 1)
 #endif
 
 #define AWS "$aws/things/"
@@ -162,7 +162,7 @@ int cloud_wrap_init(cloud_wrap_evt_handler_t event_handler)
 {
 	int err;
 
-#if !defined(CONFIG_USE_CUSTOM_MQTT_CLIENT_ID)
+#if !defined(CONFIG_CLOUD_CLIENT_ID_USE_CUSTOM)
 	char imei_buf[50];
 
 	/* Retrieve device IMEI from modem. */
@@ -179,7 +179,7 @@ int cloud_wrap_init(cloud_wrap_evt_handler_t event_handler)
 
 #else
 	snprintf(client_id_buf, sizeof(client_id_buf), "%s",
-		 CONFIG_MQTT_CLIENT_ID);
+		 CONFIG_CLOUD_CLIENT_ID);
 #endif
 
 	/* Fetch IMEI from modem data and set IMEI as cloud connection ID **/

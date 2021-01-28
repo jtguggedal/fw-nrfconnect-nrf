@@ -14,20 +14,20 @@ config CLOUD_THREAD_STACK_SIZE
 	int "Cloud module thread stack size"
 	default 2560
 
-config USE_CUSTOM_MQTT_CLIENT_ID
-	bool "Use custom MQTT client ID"
+config CLOUD_CLIENT_ID_USE_CUSTOM
+	bool "Use custom cloud client ID"
 	help
 	  By default the device's IMEI is used as the client ID
-	  for the MQTT connection. This allows to use a fixed
+	  for the cloud connection. This allows to use a fixed
 	  value instead. This is mostly useful when providing
 	  firmware builds to continuous integration tests on
 	  real hardware.
 	  Note: you must only run this firmware build on one
 	  device at a time.
 
-config MQTT_CLIENT_ID
-	depends on USE_CUSTOM_MQTT_CLIENT_ID
-	string	"MQTT client ID"
+config CLOUD_CLIENT_ID
+	depends on CLOUD_CLIENT_ID_USE_CUSTOM
+	string	"Cloud client ID"
 
 config CLOUD_CONNECT_RETRIES
 	int "Cloud reconnection attempts"
