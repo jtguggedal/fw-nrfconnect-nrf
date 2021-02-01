@@ -61,31 +61,6 @@ static enum state_type {
 	STATE_CLOUD_CONNECTED
 } state;
 
-/* Ringbuffers. All data received by the Data module are stored in ringbuffers.
- * Upon a LTE connection loss the device will keep sampling/storing data in
- * the buffers, and empty the buffers in batches upon a reconnect.
- */
-static struct cloud_data_gps gps_buf[CONFIG_GPS_BUFFER_MAX];
-static struct cloud_data_sensors sensors_buf[CONFIG_SENSOR_BUFFER_MAX];
-static struct cloud_data_ui ui_buf[CONFIG_UI_BUFFER_MAX];
-static struct cloud_data_accelerometer accel_buf[CONFIG_ACCEL_BUFFER_MAX];
-static struct cloud_data_battery bat_buf[CONFIG_BAT_BUFFER_MAX];
-
-static struct cloud_data_modem_dynamic
-			modem_dyn_buf[CONFIG_MODEM_BUFFER_DYNAMIC_MAX];
-
-/* Static modem data does not change between firmware versions and does not
- * have to be buffered.
- */
-static struct cloud_data_modem_static modem_stat;
-
-/* Head of ringbuffers. */
-static int head_gps_buf;
-static int head_sensor_buf;
-static int head_modem_dyn_buf;
-static int head_ui_buf;
-static int head_accel_buf;
-static int head_bat_buf;
 
 /* Default device configuration. */
 static struct cloud_data_cfg current_cfg = {
@@ -380,20 +355,12 @@ static void data_send(void)
 	if (!date_time_is_valid()) {
 		/* Date time library does not have valid time to
 		 * timestamp cloud data. Abort cloud publicaton. Data will
-		 * be cached in it respective ringbuffer.
+		 * be cached in its respective ringbuffer.
 		 */
 		return;
 	}
 
-	err = cloud_codec_encode_data(
-		&codec,
-		&gps_buf[head_gps_buf],
-		&sensors_buf[head_sensor_buf],
-		&modem_stat,
-		&modem_dyn_buf[head_modem_dyn_buf],
-		&ui_buf[head_ui_buf],
-		&accel_buf[head_accel_buf],
-		&bat_buf[head_bat_buf]);
+	err = cloud_codec_encode_data(&codec);
 	if (err == -ENODATA) {
 		/* This error might occurs when data has not been obtained prior
 		 * to data encoding.
@@ -422,19 +389,7 @@ static void data_send(void)
 	codec.buf = NULL;
 	codec.len = 0;
 
-	err = cloud_codec_encode_batch_data(&codec,
-					gps_buf,
-					sensors_buf,
-					modem_dyn_buf,
-					ui_buf,
-					accel_buf,
-					bat_buf,
-					ARRAY_SIZE(gps_buf),
-					ARRAY_SIZE(sensors_buf),
-					ARRAY_SIZE(modem_dyn_buf),
-					ARRAY_SIZE(ui_buf),
-					ARRAY_SIZE(accel_buf),
-					ARRAY_SIZE(bat_buf));
+	err = cloud_codec_encode_batch_data(&codec);
 	if (err == -ENODATA) {
 		LOG_WRN("No batch data to encode, ringbuffers empty");
 		return;
@@ -490,13 +445,16 @@ static void data_ui_send(void)
 	if (!date_time_is_valid()) {
 		/* Date time library does not have valid time to
 		 * timestamp cloud data. Abort cloud publicaton. Data will
-		 * be cached in it respective ringbuffer.
+		 * be cached in its respective ringbuffer.
 		 */
 		return;
 	}
 
-	err = cloud_codec_encode_ui_data(&codec, &ui_buf[head_ui_buf]);
-	if (err) {
+	err = cloud_codec_encode_ui_data(&codec);
+	if (err == -ENODATA) {
+		LOG_WRN("No UI data to encode, error: %d", err);
+		return;
+	} else if (err) {
 		LOG_ERR("Encoding button press, error: %d", err);
 		SEND_ERROR(data, DATA_EVT_ERROR, err);
 		return;
@@ -751,12 +709,15 @@ static void on_all_states(struct data_msg_data *msg)
 		struct cloud_data_ui new_ui_data = {
 			.btn = msg->module.ui.data.ui.button_number,
 			.btn_ts = msg->module.ui.data.ui.timestamp,
-			.queued = true
 		};
 
-		cloud_codec_populate_ui_buffer(ui_buf, &new_ui_data,
-					       &head_ui_buf,
-					       ARRAY_SIZE(ui_buf));
+		int err = cloud_codec_enqueue_ui_data(&new_ui_data);
+
+		if (err) {
+			LOG_ERR("Error enqueueing data, error: %d", err);
+			SEND_ERROR(data, DATA_EVT_ERROR, err);
+			return;
+		}
 
 		SEND_EVENT(data, DATA_EVT_UI_DATA_READY);
 		return;
@@ -767,19 +728,33 @@ static void on_all_states(struct data_msg_data *msg)
 	}
 
 	if (IS_EVENT(msg, modem, MODEM_EVT_MODEM_STATIC_DATA_READY)) {
-		modem_stat.appv =
-			msg->module.modem.data.modem_static.app_version;
-		modem_stat.brdv =
-			msg->module.modem.data.modem_static.board_version;
-		modem_stat.nw_lte_m =
-			msg->module.modem.data.modem_static.nw_mode_ltem;
-		modem_stat.nw_nb_iot =
-			msg->module.modem.data.modem_static.nw_mode_nbiot;
-		modem_stat.bnd = msg->module.modem.data.modem_static.band;
-		modem_stat.fw = msg->module.modem.data.modem_static.modem_fw;
-		modem_stat.iccid = msg->module.modem.data.modem_static.iccid;
-		modem_stat.ts = msg->module.modem.data.modem_static.timestamp;
-		modem_stat.queued = true;
+		struct cloud_data_modem_static new_modem_stat_data = {
+			.appv =
+			msg->module.modem.data.modem_static.app_version,
+			.brdv =
+			msg->module.modem.data.modem_static.board_version,
+			.nw_lte_m =
+			msg->module.modem.data.modem_static.nw_mode_ltem,
+			.nw_nb_iot =
+			msg->module.modem.data.modem_static.nw_mode_nbiot,
+			.bnd =
+			msg->module.modem.data.modem_static.band,
+			.fw =
+			msg->module.modem.data.modem_static.modem_fw,
+			.iccid =
+			msg->module.modem.data.modem_static.iccid,
+			.ts =
+			msg->module.modem.data.modem_static.timestamp,
+		};
+
+		int err = cloud_codec_enqueue_modem_static_data(
+							&new_modem_stat_data);
+
+		if (err) {
+			LOG_ERR("Error enqueueing data, error: %d", err);
+			SEND_ERROR(data, DATA_EVT_ERROR, err);
+			return;
+		}
 
 		data_status_set(APP_DATA_MODEM_STATIC);
 	}
@@ -796,14 +771,16 @@ static void on_all_states(struct data_msg_data *msg)
 			.mccmnc = msg->module.modem.data.modem_dynamic.mccmnc,
 			.rsrp = msg->module.modem.data.modem_dynamic.rsrp,
 			.ts = msg->module.modem.data.modem_dynamic.timestamp,
-			.queued = true
 		};
 
-		cloud_codec_populate_modem_dynamic_buffer(
-						modem_dyn_buf,
-						&new_modem_data,
-						&head_modem_dyn_buf,
-						ARRAY_SIZE(modem_dyn_buf));
+		int err = cloud_codec_enqueue_modem_dynamic_data(
+							&new_modem_data);
+
+		if (err) {
+			LOG_ERR("Error enqueueing data, error: %d", err);
+			SEND_ERROR(data, DATA_EVT_ERROR, err);
+			return;
+		}
 
 		data_status_set(APP_DATA_MODEM_DYNAMIC);
 	}
@@ -816,12 +793,15 @@ static void on_all_states(struct data_msg_data *msg)
 		struct cloud_data_battery new_battery_data = {
 			.bat = msg->module.modem.data.bat.battery_voltage,
 			.bat_ts = msg->module.modem.data.bat.timestamp,
-			.queued = true
 		};
 
-		cloud_codec_populate_bat_buffer(bat_buf, &new_battery_data,
-						&head_bat_buf,
-						ARRAY_SIZE(bat_buf));
+		int err = cloud_codec_enqueue_battery_data(&new_battery_data);
+
+		if (err) {
+			LOG_ERR("Error enqueueing data, error: %d", err);
+			SEND_ERROR(data, DATA_EVT_ERROR, err);
+			return;
+		}
 
 		data_status_set(APP_DATA_BATTERY);
 	}
@@ -831,13 +811,15 @@ static void on_all_states(struct data_msg_data *msg)
 			.temp = msg->module.sensor.data.sensors.temperature,
 			.hum = msg->module.sensor.data.sensors.humidity,
 			.env_ts = msg->module.sensor.data.sensors.timestamp,
-			.queued = true
 		};
 
-		cloud_codec_populate_sensor_buffer(sensors_buf,
-						   &new_sensor_data,
-						   &head_sensor_buf,
-						   ARRAY_SIZE(sensors_buf));
+		int err = cloud_codec_enqueue_sensor_data(&new_sensor_data);
+
+		if (err) {
+			LOG_ERR("Error enqueueing data, error: %d", err);
+			SEND_ERROR(data, DATA_EVT_ERROR, err);
+			return;
+		}
 
 		data_status_set(APP_DATA_ENVIRONMENTAL);
 	}
@@ -857,12 +839,15 @@ static void on_all_states(struct data_msg_data *msg)
 			.values[1] = msg->module.sensor.data.accel.values[1],
 			.values[2] = msg->module.sensor.data.accel.values[2],
 			.ts = msg->module.sensor.data.accel.timestamp,
-			.queued = true
 		};
 
-		cloud_codec_populate_accel_buffer(accel_buf, &new_movement_data,
-						  &head_accel_buf,
-						  ARRAY_SIZE(accel_buf));
+		int err = cloud_codec_enqueue_accel_data(&new_movement_data);
+
+		if (err) {
+			LOG_ERR("Error enqueueing data, error: %d", err);
+			SEND_ERROR(data, DATA_EVT_ERROR, err);
+			return;
+		}
 	}
 
 	if (IS_EVENT(msg, gps, GPS_EVT_DATA_READY)) {
@@ -874,12 +859,15 @@ static void on_all_states(struct data_msg_data *msg)
 			.longi = msg->module.gps.data.gps.longitude,
 			.spd = msg->module.gps.data.gps.speed,
 			.gps_ts = msg->module.gps.data.gps.timestamp,
-			.queued = true
 		};
 
-		cloud_codec_populate_gps_buffer(gps_buf, &new_gps_data,
-						&head_gps_buf,
-						ARRAY_SIZE(gps_buf));
+		int err = cloud_codec_enqueue_gps_data(&new_gps_data);
+
+		if (err) {
+			LOG_ERR("Error enqueueing data, error: %d", err);
+			SEND_ERROR(data, DATA_EVT_ERROR, err);
+			return;
+		}
 
 		data_status_set(APP_DATA_GNSS);
 	}
