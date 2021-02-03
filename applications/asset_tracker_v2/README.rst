@@ -12,14 +12,15 @@ The Asset Tracker v2 is a real-time configurable ultra-low-power application fir
 Overview
 ********
 
-The application samples sensor data and publish the data to a connected cloud service over TCP/IP via LTE.
+The application samples sensor data and publishes the data to a connected cloud service over TCP/IP via LTE.
 As of now, the application supports `AWS IoT Core`_.
+The application is intended to be used with an instance of `Asset Tracker cloud example for AWS`_ running on the cloud side.
 
 Firmware architecture
 =====================
 
 The Asset Tracker v2 application has a modular structure, where each module has a defined scope of responsibility.
-The application makes use of the event manager to distribute events between modules in the system.
+The application makes use of the :ref:`event_manager` to distribute events between modules in the system.
 The event manager is used for all the communication between the modules.
 A module converts incoming events to messages and processes them in a FIFO manner.
 The processing happens either in a dedicated processing thread in the module, or directly in the event manager callback.
@@ -142,7 +143,7 @@ The application always acknowledges any newly applied device configurations back
 Data buffers
 ============
 
-Data sampled from the onboard modem and the external sensors get stored in ring buffers.
+Data sampled from the onboard modem and the external sensors is stored in ring buffers.
 Newly sampled data is always published prior to the old, buffered data.
 
 The application has LTE and cloud connection awareness.
@@ -151,7 +152,7 @@ Upon a disconnect from the cloud service, the application keeps the sensor data 
 User Interface
 **************
 
-The application uses the following buttons of the nRF9160-based devices:
+The application uses the following buttons on the nRF9160-based development kits:
 
 * Button 1 on Thingy:91
 * Button 1 and Button 2 on nRF9160 DK
@@ -164,7 +165,7 @@ The following table shows the purpose of each supported button:
 +========+===================================+==============================================================================================================+
 | 1      | Send message to the cloud service | Send message to the cloud service                                                                            |
 +--------+-----------------------------------+--------------------------------------------------------------------------------------------------------------+
-| 2      | NA                                | Send message to the cloud service                                                                            |
+| 2      |                                   | Send message to the cloud service                                                                            |
 |        |                                   +--------------------------------------------------------------------------------------------------------------+
 |        |                                   | Fake movement. No external accelerometer in nRF9160 DK  to trigger movement in passive mode.                 |
 +--------+-----------------------------------+--------------------------------------------------------------------------------------------------------------+
@@ -234,10 +235,6 @@ Check and configure the following configuration options for the application:
 
    This application configuration sets a custom client ID for the respective cloud. For setting a custom client ID, you need to set :option:`CONFIG_CLOUD_CLIENT_ID_USE_CUSTOM` to ``y``.
 
-.. option:: CONFIG_SECURE_BOOT - Configuration for enabling immutable bootloader
-
-	This application configuration enables the immutable bootloader.
-
 
 Additional configuration
 ========================
@@ -250,6 +247,8 @@ If you are using your own instance of AWS IoT core cloud service, you must check
 * :option:`CONFIG_AWS_IOT_BROKER_HOST_NAME`
 * :option:`CONFIG_AWS_IOT_SEC_TAG`
 
+The application makes use of the heap when encoding and sending data to the cloud.
+More information can be found in :ref:`memory_allocation`
 For configuring the heap size, check and configure the following configuration option:
 
 * :option:`CONFIG_HEAP_MEM_POOL_SIZE`
@@ -261,7 +260,6 @@ To manually configure the APN, set the following options:
 * :option:`CONFIG_LTE_PDP_CONTEXT` - Set the option to ``0,\"IP\",\"apn.example.com\"``
 
 
-
 Configuration files
 ===================
 
@@ -271,16 +269,16 @@ You can find the configuration files in the :file:`applications/asset_tracker_v2
 It is possible to build the application with overlay files for both DTS and Kconfig to override the default values for the board.
 The application contains examples of Kconfig overlays.
 
-Kconfig overlays have an ``overlay-`` prefix and a ``.conf`` extension.
-DTS overlay files are named the same as the build target and use the file extension ``.overlay``.
-When the DTS overlay filename matches the build target, the overlay is automatically chosen and applied by the build system.
-
-The following configuration files are available:
+The following configuration files are available in the application folder:
 
 * :file:`prj_nrf9160dk_nrf9160ns.conf`  - Configuration file for nRF9160 DK
 * :file:`prj_thingy91_nrf9160ns.conf` - Configuration file for Thingy:91
 * :file:`overlay-low-power.conf` - Configuration file that disables the modules that provides the functionalities, which consume high power
 * :file:`overlay-debug.conf` - Configuration file that adds additional verbose logging capabilities to the application
+
+Generally, Kconfig overlays have an ``overlay-`` prefix and a ``.conf`` extension.
+DTS overlay files are named the same as the build target and use the file extension ``.overlay``.
+When the DTS overlay filename matches the build target, the overlay is automatically chosen and applied by the build system.
 
 
 Building and running
@@ -454,20 +452,21 @@ Following is the basic structure for all the threads:
 
                    switch (state) {
                    case STATE_DISCONNECTED:
-                           on_tate_disconnected(msg);
+                           on_tate_disconnected(&msg);
                            break;
                    case STATE_CONNECTED:
-                           on_state_connected(msg);
+                           on_state_connected(&msg);
                            break;
                    default:
                            LOG_WRN("Unknown state");
                            break;
                    }
 
-                   on_all_states(msg);
+                   on_all_states(&msg);
            }
    }
 
+.. _memory_allocation:
 
 Memory allocation
 =================
