@@ -680,8 +680,12 @@ static void requested_data_list_set(enum app_module_data_type *data_list,
 static void on_cloud_state_disconnected(struct data_msg_data *msg)
 {
 	if (IS_EVENT(msg, cloud, CLOUD_EVT_CONNECTED)) {
-		date_time_update_async(date_time_event_handler);
 		state_set(STATE_CLOUD_CONNECTED);
+
+		if (IS_ENABLED(CONFIG_DATA_SEND_CONFIGURATION_ON_CONNECTION)) {
+			config_send();
+		}
+		date_time_update_async(date_time_event_handler);
 	}
 }
 

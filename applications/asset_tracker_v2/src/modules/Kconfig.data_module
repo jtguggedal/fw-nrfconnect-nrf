@@ -19,6 +19,10 @@ config FAILED_DATA_COUNT
 	int "Number of entries in failed data list"
 	default 10
 
+config DATA_SEND_CONFIGURATION_ON_CONNECTION
+	bool "Send the device configuration after an established connection"
+	default y
+
 config DATA_THREAD_STACK_SIZE
 	int "Data module thread stack size"
 	default 2048
