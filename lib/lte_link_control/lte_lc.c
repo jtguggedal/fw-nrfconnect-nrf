@@ -220,7 +220,7 @@ static bool is_relevant_notif(const char *notif, enum lte_lc_notif_type *type)
 		if (strncmp(at_notifs[i], notif,
 			    strlen(at_notifs[i])) == 0) {
 			/* The notification type matches the array index */
-			*type = i;
+			*type = (enum lte_lc_notif_type)i;
 
 			return true;
 		}
@@ -263,7 +263,7 @@ static int parse_cereg(const char *notification,
 		goto clean_exit;
 	}
 
-	*reg_status = status;
+	*reg_status = (enum lte_lc_nw_reg_status)status;
 
 	if ((*reg_status != LTE_LC_NW_REG_UICC_FAIL) &&
 	    (at_params_valid_count_get(&resp_list) > AT_CEREG_CELL_ID_INDEX)) {
@@ -344,7 +344,8 @@ static void at_handler(void *context, const char *response)
 			LTE_LC_NW_REG_NOT_REGISTERED;
 		static struct lte_lc_cell prev_cell;
 		static struct lte_lc_psm_cfg prev_psm_cfg;
-		enum lte_lc_nw_reg_status reg_status = 0;
+		enum lte_lc_nw_reg_status reg_status =
+			LTE_LC_NW_REG_NOT_REGISTERED;
 		struct lte_lc_cell cell;
 		struct lte_lc_psm_cfg psm_cfg;
 
@@ -938,7 +939,7 @@ int lte_lc_edrx_param_set(const char *edrx)
 	}
 
 	if (edrx != NULL) {
-		strcpy(edrx_param, edrx);
+		strncpy(edrx_param, edrx, 4);
 		LOG_DBG("eDRX set to %s", log_strdup(edrx_param));
 	} else {
 		*edrx_param = '\0';
@@ -955,7 +956,7 @@ int lte_lc_ptw_set(const char *ptw)
 	}
 
 	if (ptw != NULL) {
-		strcpy(ptw_param, ptw);
+		strncpy(ptw_param, ptw, 4);
 		LOG_DBG("PTW set to %s", log_strdup(ptw_param));
 	} else {
 		*ptw_param = '\0';
@@ -994,11 +995,19 @@ int lte_lc_edrx_req(bool enable)
 
 	if (enable) {
 		if (strlen(edrx_param) == 4) {
-			snprintf(req, sizeof(req),
+			err = snprintf(req, sizeof(req),
 				"AT+CEDRXS=2,%d,\"%s\"", actt, edrx_param);
+			if ((err < 0) || (err >= sizeof(req))) {
+				LOG_ERR("Failed to create CEDRXS command");
+				return err < 0 ? err : -ENOMEM;
+			}
 		} else {
-			snprintf(req, sizeof(req),
+			err = snprintf(req, sizeof(req),
 				"AT+CEDRXS=2,%d", actt);
+			if ((err < 0) || (err >= sizeof(req))) {
+				LOG_ERR("Failed to create CEDRXS command");
+				return err < 0 ? err : -ENOMEM;
+			}
 		}
 		err = at_cmd_write(req, NULL, 0, NULL);
 	} else {
@@ -1218,7 +1227,7 @@ static int parse_nw_reg_status(const char *at_response,
 	case LTE_LC_NW_REG_REGISTERED_ROAMING:
 	case LTE_LC_NW_REG_REGISTERED_EMERGENCY:
 	case LTE_LC_NW_REG_UICC_FAIL:
-		*status = reg_status;
+		*status = (enum lte_lc_nw_reg_status)reg_status;
 		LOG_DBG("Network registration status: %d", reg_status);
 		break;
 	default:
@@ -1696,7 +1705,7 @@ int lte_lc_func_mode_get(enum lte_lc_func_mode *mode)
 		goto clean_exit;
 	}
 
-	*mode = resp_mode;
+	*mode = (enum lte_lc_func_mode)resp_mode;
 
 clean_exit:
 	at_params_list_free(&resp_list);
