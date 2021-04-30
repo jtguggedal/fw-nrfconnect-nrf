@@ -1,0 +1,3 @@
+
+MEMFAULT_METRICS_KEY_DEFINE(at_cmd_free_stack_size, kMemfaultMetricType_Unsigned)
+MEMFAULT_METRICS_KEY_DEFINE(lte_time_to_connect, kMemfaultMetricType_Timer)
