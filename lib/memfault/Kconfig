@@ -12,14 +12,51 @@ config MEMFAULT_API_KEY
 config MEMFAULT_DEVICE_ID
         string "Memfault device ID"
 
-config MEMFAULT_DEVICE_ID_USE_IMEI
-        bool "Use IMEI as Memfault device ID"
+config MEMFAULT_DEVICE_SERIAL_USE_IMEI
+        bool "Use IMEI as Memfault device serial"
         depends on AT_CMD
         default y if BOARD_NRF9160DK_NRF9160NS || BOARD_THINGY91_NRF9160NS
 
+config MEMFAULT_HW_VERSION
+        string "Hardware version"
+        default CONFIG_BOARD
+
+config MEMFAULT_FW_TYPE
+        string "Firmware type"
+        default "nrf91-fw" if BOARD_NRF9160DK_NRF9160 || BOARD_THINGY91_NRF9160
+        default "nrf91ns-fw" if BOARD_NRF9160DK_NRF9160NS || BOARD_THINGY91_NRF9160NS
+        help
+          Firmware type running on the board.
+
+choice
+	prompt "Firmware version generation method"
+        default MEMFAULT_FW_VERSION_AUTO
+
+config MEMFAULT_FW_VERSION_STATIC
+        bool "Static firmware version"
+        help
+          Use statically configured firmware version, as opposed to an
+          dynamically generated one.
+
+config MEMFAULT_FW_VERSION_AUTO
+        bool "Dynamic firmware version"
+        help
+          Use dyanimically generated firmware version. The version is
+          re-generated on every compiler run.
+endchoice
+
+config MEMFAULT_FW_VERSION_PREFIX
+        string "Firmware version prefix"
+        depends on MEMFAULT_FW_VERSION_AUTO
+        default "0.0.1+"
+        help
+          Prefix to use in front of automatically generated build version string.
+          If the build version string is "a1b2c3d", the full firmware version
+          will become "<prefix>a1b2c3d".
+
 config MEMFAULT_INIT_PRIORITY
         int "memfault initialization priority"
-        range AT_CMD_INIT_PRIORITY 99 if MEMFAULT_DEVICE_ID_USE_IMEI
+        range AT_CMD_INIT_PRIORITY 99 if MEMFAULT_DEVICE_SERIAL_USE_IMEI
         default 90
         help
           If IMEI is used as device ID, the initialization priority must be
