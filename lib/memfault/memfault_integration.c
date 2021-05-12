@@ -7,18 +7,19 @@
 #include <zephyr.h>
 #include <stdio.h>
 #include <string.h>
-
-#ifdef CONFIG_MEMFAULT_DEVICE_SERIAL_USE_IMEI
-#include <modem/at_cmd.h>
 #include <init.h>
-#endif
+#include <modem/at_cmd.h>
 
-#include "memfault/core/build_info.h"
-#include "memfault/core/compiler.h"
-#include "memfault/core/math.h"
-#include "memfault/core/platform/device_info.h"
-#include "memfault/http/http_client.h"
-#include "memfault/nrfconnect_port/http.h"
+#include <memfault/core/build_info.h>
+#include <memfault/core/compiler.h>
+#include <memfault/core/math.h>
+#include <memfault/core/platform/device_info.h>
+#include <memfault/http/http_client.h>
+#include <memfault/nrfconnect_port/http.h>
+
+#include <logging/log.h>
+
+LOG_MODULE_REGISTER(memfault_integration, CONFIG_MEMFAULT_INTEGRATION_LOG_LEVEL);
 
 #define IMEI_LEN 15
 
@@ -47,6 +48,9 @@ static char device_serial[MAX(sizeof(CONFIG_MEMFAULT_DEVICE_ID), IMEI_LEN + 1)] 
 static char device_serial[] = CONFIG_MEMFAULT_DEVICE_ID;
 #endif
 
+sMfltHttpClientConfig g_mflt_http_client_config = {
+    .api_key = CONFIG_MEMFAULT_API_KEY,
+};
 
 void memfault_platform_get_device_info(sMemfaultDeviceInfo *info)
 {
@@ -75,43 +79,62 @@ void memfault_platform_get_device_info(sMemfaultDeviceInfo *info)
 	};
 }
 
-sMfltHttpClientConfig g_mflt_http_client_config = {
-    .api_key = CONFIG_MEMFAULT_API_KEY,
-};
-
-#ifdef CONFIG_MEMFAULT_DEVICE_SERIAL_USE_IMEI
-
-static int query_modem(const char *cmd, char *buf, size_t buf_len)
+static int request_imei(const char *cmd, char *buf, size_t buf_len)
 {
 	enum at_cmd_state at_state;
-	int ret = at_cmd_write(cmd, buf, buf_len, &at_state);
+	int err = at_cmd_write(cmd, buf, buf_len, &at_state);
 
-	if (ret != 0)
-	{
-		printk("at_cmd_write [%s] error:%d, at_state: %d",
-		       cmd, ret, at_state);
+	if (err) {
+		LOG_ERR("at_cmd_write failed, error: %d, at_state: %d", err, at_state);
 	}
 
-	return ret;
+	return err;
 }
 
-static int prv_init_device_info(const struct device *unused)
+static int device_info_init(void)
 {
+	int err;
+	char imei_buf[IMEI_LEN + 2 + 1]; /* Add 2 for \r\n and 1 for \0 */
+
+	err = request_imei("AT+CGSN", imei_buf, sizeof(imei_buf));
+	if (err) {
+		strncat(device_serial, "Unknown", sizeof());
+		LOG_ERR("Failed to retrieve IMEI");
+	} else {
+		imei_buf[IMEI_LEN] = '\0';
+		strncat(device_serial, imei_buf);
+	}
+
+	LOG_DBG("Device serial generated: %s", log_strdup(device_serial));
+
+	return err;
+}
+
+static int init(const struct device *unused)
+{
+	int err = 0;
+
 	ARG_UNUSED(unused);
 
-	char imei_buf[IMEI_LEN + 2 /* for \r\n */ + 1 /* \0 */];
-	if (query_modem("AT+CGSN", imei_buf, sizeof(imei_buf)) != 0)
-	{
-		strcat(device_serial, "Unknown");
-		return 0;
+	if (IS_ENABLED(CONFIG_MEMFAULT_PROVISION_CERTIFICATES)) {
+		err = memfault_zephyr_port_install_root_certs();
+		if (err) {
+			LOG_ERR("Failed to provision certificates, error: %d", err);
+			LOG_WRN("Certificates can not be provisioned while LTE is active");
+			/* We don't consider this a critical failure, as the application
+			 * can attempt to provision at a later stage.
+			 */
+		}
 	}
 
-	imei_buf[IMEI_LEN] = '\0';
-	strcat(device_serial, imei_buf);
+	if (IS_ENABLED(CONFIG_MEMFAULT_DEVICE_SERIAL_USE_IMEI)) {
+		err = device_info_init();
+		if (err) {
+			LOG_ERR("Device info initialization failed, error: %d", err);
+		}
+	}
 
-	return 0;
+	return err;
 }
 
-SYS_INIT(prv_init_device_info, APPLICATION, CONFIG_MEMFAULT_INIT_PRIORITY);
-
-#endif /* CONFIG_MEMFAULT_DEVICE_SERIAL_USE_IMEI */
+SYS_INIT(init, APPLICATION, CONFIG_MEMFAULT_INIT_PRIORITY);

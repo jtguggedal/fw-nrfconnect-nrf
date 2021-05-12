@@ -62,4 +62,19 @@ config MEMFAULT_INIT_PRIORITY
           If IMEI is used as device ID, the initialization priority must be
           greater than that of the AT command module.
 
+config MEMFAULT_PROVISION_CERTIFICATES
+        bool "Provision certificates on initalization"
+        default y
+        help
+          Provision required TLS root certificates for connecting to Memfault's
+          endpoints. If this option is disabled, the user is responsible for
+          calling the appropriate Memfault APIs for provisioning the
+          certificates before attempting to connect to Memfault servers.
+
+module = MEMFAULT_INTEGRATION
+module-dep = LOG
+module-str = Memfault integration library
+source "${ZEPHYR_BASE}/subsys/logging/Kconfig.template.log_config"
+
+
 endif # MEMFAULT
