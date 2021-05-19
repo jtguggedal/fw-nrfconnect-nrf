@@ -12,6 +12,7 @@
 
 #include <memfault/metrics/metrics.h>
 #include <memfault/ports/zephyr/http.h>
+#include <memfault/core/data_packetizer.h>
 
 #include <logging/log.h>
 
@@ -136,7 +137,6 @@ void main(void)
 
 	LOG_INF("Memfault sample has started");
 
-	memfault_zephyr_port_install_root_certs();
 	modem_configure();
 
 	err = dk_buttons_init(button_handler);
@@ -148,7 +148,21 @@ void main(void)
 
 	k_sem_take(&lte_connected, K_FOREVER);
 
-	memfault_metrics_heartbeat_timer_read(MEMFAULT_METRICS_KEY(lte_connect_time), &time_to_lte_connection);
+	memfault_metrics_heartbeat_timer_read(
+		MEMFAULT_METRICS_KEY(lte_connect_time),
+		&time_to_lte_connection);
 
 	LOG_INF("Connected to LTE network. Time to connect: %d ms", time_to_lte_connection);
+	LOG_INF("Sending already captured data to Memfault");
+
+	memfault_metrics_heartbeat_debug_trigger();
+
+	if (!memfault_packetizer_data_available()) {
+		LOG_DBG("There was no data to be sent");
+		return;
+	}
+
+	LOG_DBG("Sending stored data...");
+
+	memfault_zephyr_port_post_data();
 }

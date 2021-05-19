@@ -6,6 +6,11 @@
 
 if MEMFAULT
 
+config MEMFAULT_USE_EXTRA_DEFS_FILE
+        bool
+        select MEMFAULT_METRICS_EXTRA_DEFS_FILE
+        default y
+
 config MEMFAULT_API_KEY
         string "Memfault API key"
 

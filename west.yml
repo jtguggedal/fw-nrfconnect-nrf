@@ -35,8 +35,8 @@ manifest:
       url-base: https://github.com/NordicSemiconductor
     - name: pelioniot
       url-base: https://github.com/PelionIoT
-    - name: jtguggedal
-      url-base: https://github.com/jtguggedal
+    - name: memfault
+      url-base: https://github.com/memfault
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -171,8 +171,8 @@ manifest:
       - find-my
     - name: memfault-firmware-sdk
       path: modules/memfault-firmware-sdk
-      revision:  add-zephyr-module-yml
-      remote: jtguggedal
+      revision: 0.19.0
+      remote: memfault
 
   # West-related configuration for the nrf repository.
   self:

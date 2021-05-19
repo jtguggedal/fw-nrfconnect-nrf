@@ -6,3 +6,4 @@
 
 zephyr_library()
 zephyr_library_sources(memfault_integration.c)
+zephyr_include_directories(config)

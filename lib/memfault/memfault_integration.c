@@ -16,6 +16,8 @@
 #include <memfault/core/platform/device_info.h>
 #include <memfault/http/http_client.h>
 #include <memfault/nrfconnect_port/http.h>
+#include <memfault/core/data_packetizer.h>
+#include <memfault/metrics/metrics.h>
 
 #include <logging/log.h>
 
@@ -24,7 +26,8 @@ LOG_MODULE_REGISTER(memfault_integration, CONFIG_MEMFAULT_INTEGRATION_LOG_LEVEL)
 #define IMEI_LEN 15
 
 /* API key check */
-BUILD_ASSERT(sizeof(CONFIG_MEMFAULT_API_KEY) > 1, "API key must be configured");
+BUILD_ASSERT(sizeof(CONFIG_MEMFAULT_API_KEY) > 1,
+	"Memfault API Key not configured. Please visit https://go.memfault.com/create-key/nrf91");
 
 /* Device ID check */
 BUILD_ASSERT((sizeof(CONFIG_MEMFAULT_DEVICE_ID) > 1) || CONFIG_MEMFAULT_DEVICE_SERIAL_USE_IMEI,
@@ -47,6 +50,8 @@ static char device_serial[MAX(sizeof(CONFIG_MEMFAULT_DEVICE_ID), IMEI_LEN + 1)] 
 #else
 static char device_serial[] = CONFIG_MEMFAULT_DEVICE_ID;
 #endif
+
+static struct k_work_delayable stack_check_work;
 
 sMfltHttpClientConfig g_mflt_http_client_config = {
     .api_key = CONFIG_MEMFAULT_API_KEY,
@@ -98,11 +103,13 @@ static int device_info_init(void)
 
 	err = request_imei("AT+CGSN", imei_buf, sizeof(imei_buf));
 	if (err) {
-		strncat(device_serial, "Unknown", sizeof());
+		strncat(device_serial, "Unknown",
+			sizeof(device_serial) - strlen(device_serial) - 1);
 		LOG_ERR("Failed to retrieve IMEI");
 	} else {
 		imei_buf[IMEI_LEN] = '\0';
-		strncat(device_serial, imei_buf);
+		strncat(device_serial, imei_buf,
+			sizeof(device_serial) - strlen(device_serial) - 1);
 	}
 
 	LOG_DBG("Device serial generated: %s", log_strdup(device_serial));
@@ -110,11 +117,62 @@ static int device_info_init(void)
 	return err;
 }
 
+static void stack_check_cb(const struct k_thread *cthread, void *user_data)
+{
+	struct k_thread *thread = (struct k_thread *)cthread;
+	char hexname[11];
+	const char *name;
+	size_t unused;
+	int err;
+	static size_t prev_unused;
+
+	ARG_UNUSED(user_data);
+
+	name = k_thread_name_get((k_tid_t)thread);
+	if (!name || name[0] == '\0') {
+		name = hexname;
+
+		snprintk(hexname, sizeof(hexname), "%p", (void *)thread);
+		LOG_DBG("No thread name registere for %s", name);
+		return;
+	}
+
+	if (strncmp("at_cmd_socket_thread", name, sizeof("at_cmd_socket_thread")) != 0) {
+		LOG_DBG("Not relevant stack: %s", name);
+		return;
+	}
+
+	err = k_thread_stack_space_get(thread, &unused);
+	if (err) {
+		LOG_WRN(" %-20s: unable to get stack space (%d)", name, err);
+		return;
+	}
+
+	if (unused == prev_unused) {
+		return;
+	}
+
+	prev_unused = unused;
+
+	LOG_DBG("Unused at_cmd stack size: %d", unused);
+
+	memfault_metrics_heartbeat_set_unsigned(
+		MEMFAULT_METRICS_KEY(at_cmd_free_stack_size), unused);
+}
+
+static void stack_check_work_fn(struct k_work *work)
+{
+	k_thread_foreach_unlocked(stack_check_cb, NULL);
+	k_work_reschedule(k_work_delayable_from_work(work), K_SECONDS(600));
+}
+
 static int init(const struct device *unused)
 {
 	int err = 0;
 
 	ARG_UNUSED(unused);
+
+	k_work_init_delayable(&stack_check_work, stack_check_work_fn);
 
 	if (IS_ENABLED(CONFIG_MEMFAULT_PROVISION_CERTIFICATES)) {
 		err = memfault_zephyr_port_install_root_certs();
@@ -133,6 +191,8 @@ static int init(const struct device *unused)
 			LOG_ERR("Device info initialization failed, error: %d", err);
 		}
 	}
+
+	k_work_schedule(&stack_check_work, K_NO_WAIT);
 
 	return err;
 }
