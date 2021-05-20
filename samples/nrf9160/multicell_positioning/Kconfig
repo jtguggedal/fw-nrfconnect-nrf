@@ -38,18 +38,49 @@ config MULTICELL_SERVICE_SKYHOOK
 endchoice
 
 if MULTICELL_SERVICE_HERE
+choice
+	prompt "HERE Positioning API version"
+	default MULTICELL_HERE_V2
+
+config MULTICELL_HERE_V1
+	bool "HERE API v1"
+
+config MULTICELL_HERE_V2
+	bool "HERE API v2"
+
+endchoice
+
+choice
+	prompt "HERE authentication method"
+	default MULTICELL_HERE_USE_API_KEY
+
+config MULTICELL_HERE_USE_API_KEY
+	bool "Use API key"
+
+config MULTICELL_HERE_USE_APP_CODE_ID
+	bool "Use app code and ID"
+
+endchoice
 
 config MULTICELL_HERE_HOSTNAME
 	string "HERE hostname"
-	default "pos.api.here.com"
+	default "pos.api.here.com" if MULTICELL_HERE_V1
+	default "positioning.hereapi.com" if MULTICELL_HERE_V2
 
+config MULTICELL_HERE_API_KEY
+	string "HERE API key"
+	depends on MULTICELL_HERE_USE_API_KEY
+
+if MULTICELL_HERE_USE_APP_CODE_ID
 config MULTICELL_HERE_APP_CODE
 	string "HERE APP code"
 
 config MULTICELL_HERE_APP_ID
 	string "HERE APP ID"
 
+endif # MULTICELL_HERE_USE_APP_CODE_ID
 endif # MULTICELL_SERVICE_HERE
+
 
 if MULTICELL_SERVICE_SKYHOOK
 

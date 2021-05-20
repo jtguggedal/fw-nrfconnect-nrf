@@ -14,12 +14,26 @@
 
 LOG_MODULE_REGISTER(multicell_positioning_here, CONFIG_MULTICELL_POSITIONING_LOG_LEVEL);
 
-#define API_APP_CODE 	CONFIG_MULTICELL_HERE_APP_CODE
-#define API_APP_ID	CONFIG_MULTICELL_HERE_APP_ID
 #define HOSTNAME	CONFIG_MULTICELL_HERE_HOSTNAME
 
+#if IS_ENABLED(CONFIG_MULTICELL_HERE_V1)
+#define PATH		"/positioning/v1/locate"
+#elif IS_ENABLED(CONFIG_MULTICELL_HERE_V2)
+#define PATH		"/v2/locate"
+#endif
+
+#if IS_ENABLED(CONFIG_MULTICELL_HERE_USE_API_KEY)
+BUILD_ASSERT(sizeof(CONFIG_MULTICELL_HERE_API_KEY) > 1, "API key must be configured");
+#define AUTHENTICATION	"apiKey="CONFIG_MULTICELL_HERE_API_KEY
+#elif IS_ENABLED(CONFIG_MULTICELL_HERE_USE_APP_CODE_ID)
+BUILD_ASSERT(sizeof(API_APP_CODE) > 1, "App code must be configured");
+BUILD_ASSERT(sizeof(API_APP_ID) > 1, "App ID must be configured");
+#define AUTHENTICATION
+	"app_code="CONFIG_MULTICELL_HERE_APP_CODE"&app_id="CONFIG_MULTICELL_HERE_APP_ID
+#endif
+
 #define HTTP_REQUEST_HEADER						\
-	"POST /positioning/v1/locate?app_code="API_APP_CODE"&app_id="API_APP_ID" HTTP/1.1\r\n" \
+	"POST "PATH"?"AUTHENTICATION" HTTP/1.1\r\n" \
 	"Host: "HOSTNAME"\r\n"					        \
 	"Content-Type: application/json\r\n"				\
 	"Content-Length: %d\r\n\r\n"
@@ -83,8 +97,6 @@ static const char tls_certificate[] =
         "SPY=\n"
         "-----END CERTIFICATE-----\n";
 
-BUILD_ASSERT(sizeof(API_APP_CODE) > 1, "App code must be configured");
-BUILD_ASSERT(sizeof(API_APP_ID) > 1, "App ID must be configured");
 BUILD_ASSERT(sizeof(HOSTNAME) > 1, "Hostname must be configured");
 
 const char *position_service_get_hostname(void)
