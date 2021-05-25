@@ -194,6 +194,7 @@ static int init(const struct device *unused)
 
 	k_work_schedule(&stack_check_work, K_NO_WAIT);
 
+
 	return err;
 }
 
