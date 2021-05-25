@@ -22,18 +22,11 @@ static K_SEM_DEFINE(lte_connected, 0, 1);
 
 static void lte_handler(const struct lte_lc_evt *const evt)
 {
-	int err;
-
 	switch (evt->type) {
 	case LTE_LC_EVT_NW_REG_STATUS:
 		if ((evt->nw_reg_status != LTE_LC_NW_REG_REGISTERED_HOME) &&
 		     (evt->nw_reg_status != LTE_LC_NW_REG_REGISTERED_ROAMING)) {
 			break;
-		}
-
-		err = memfault_metrics_heartbeat_timer_stop(MEMFAULT_METRICS_KEY(lte_connect_time));
-		if (err) {
-			LOG_WRN("LTE connection time tracking was not stopped, error: %d", err);
 		}
 
 		LOG_INF("Network registration status: %s",
@@ -86,11 +79,6 @@ static void modem_configure(void)
 		/* Do nothing, modem is already configured and LTE connected. */
 	} else {
 		int err;
-
-		err = memfault_metrics_heartbeat_timer_start(MEMFAULT_METRICS_KEY(lte_connect_time));
-		if (err) {
-			LOG_WRN("LTE connection time tracking was not started, error: %d", err);
-		}
 
 		err = lte_lc_init_and_connect_async(lte_handler);
 		if (err) {
@@ -148,13 +136,14 @@ void main(void)
 
 	k_sem_take(&lte_connected, K_FOREVER);
 
-	memfault_metrics_heartbeat_timer_read(
-		MEMFAULT_METRICS_KEY(lte_connect_time),
-		&time_to_lte_connection);
 
+	k_sleep(K_SECONDS(2));
+
+	memfault_metrics_heartbeat_timer_read(
+		MEMFAULT_METRICS_KEY(lte_time_to_connect),
+		&time_to_lte_connection);
 	LOG_INF("Connected to LTE network. Time to connect: %d ms", time_to_lte_connection);
 	LOG_INF("Sending already captured data to Memfault");
-
 	memfault_metrics_heartbeat_debug_trigger();
 
 	if (!memfault_packetizer_data_available()) {

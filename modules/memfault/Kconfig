@@ -76,6 +76,11 @@ config MEMFAULT_PROVISION_CERTIFICATES
           calling the appropriate Memfault APIs for provisioning the
           certificates before attempting to connect to Memfault servers.
 
+config MEMFAULT_LTE_METRICS
+        bool "Capture LTE metrics"
+        select LTE_LC_TRACE
+        depends on LTE_LINK_CONTROL
+
 module = MEMFAULT_INTEGRATION
 module-dep = LOG
 module-str = Memfault integration library

@@ -9,6 +9,7 @@
 #include <string.h>
 #include <init.h>
 #include <modem/at_cmd.h>
+#include <modem/lte_lc_trace.h>
 
 #include <memfault/core/build_info.h>
 #include <memfault/core/compiler.h>
@@ -166,6 +167,34 @@ static void stack_check_work_fn(struct k_work *work)
 	k_work_reschedule(k_work_delayable_from_work(work), K_SECONDS(600));
 }
 
+static void lte_trace_cb(enum lte_lc_trace_type type)
+{
+	int err;
+
+	printk("LTE trace: %d\n", type);
+
+	switch (type) {
+	case LTE_LC_TRACE_FUNC_MODE_NORMAL:
+	case LTE_LC_TRACE_FUNC_MODE_ACTIVATE_LTE:
+		err = memfault_metrics_heartbeat_timer_start(MEMFAULT_METRICS_KEY(lte_time_to_connect));
+		if (err) {
+			LOG_WRN("LTE connection time tracking was not started, error: %d", err);
+		}
+
+		break;
+	case LTE_LC_TRACE_NW_REG_REGISTERED_HOME:
+	case LTE_LC_TRACE_NW_REG_REGISTERED_ROAMING:
+		err = memfault_metrics_heartbeat_timer_stop(MEMFAULT_METRICS_KEY(lte_time_to_connect));
+		if (err) {
+			LOG_WRN("LTE connection time tracking was not stopped, error: %d", err);
+		}
+		break;
+	default:
+		break;
+	}
+
+}
+
 static int init(const struct device *unused)
 {
 	int err = 0;
@@ -190,6 +219,10 @@ static int init(const struct device *unused)
 		if (err) {
 			LOG_ERR("Device info initialization failed, error: %d", err);
 		}
+	}
+
+	if (IS_ENABLED(CONFIG_MEMFAULT_LTE_METRICS)) {
+		lte_lc_trace_handler_set(lte_trace_cb);
 	}
 
 	k_work_schedule(&stack_check_work, K_NO_WAIT);
