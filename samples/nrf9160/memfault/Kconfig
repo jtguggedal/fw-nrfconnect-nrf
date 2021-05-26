@@ -1,0 +1,19 @@
+#
+# Copyright (c) 2021 Nordic Semiconductor ASA
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+menu "Memfault Sample"
+config MEMFAULT_SAMPLE_EMPTY
+	bool "Empty"
+
+endmenu
+
+menu "Zephyr Kernel"
+source "Kconfig.zephyr"
+endmenu
+
+module = MEMFAULT_SAMPLE
+module-str = Memfault sample
+source "${ZEPHYR_BASE}/subsys/logging/Kconfig.template.log_config"
