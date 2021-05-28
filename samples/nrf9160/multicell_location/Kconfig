@@ -1,0 +1,34 @@
+#
+# Copyright (c) 2021 Nordic Semiconductor ASA
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+menu "Multicell location sample"
+
+config MULTICELL_LOCATION_SAMPLE_PERIODIC_SEARCH
+	bool "Periodically search for neighbor cells"
+
+config MULTICELL_LOCATION_SAMPLE_PERIODIC_SEARCH_INTERVAL
+	int "Periodic search interval [sec]"
+	default 60
+
+config MULTICELL_LOCATION_SAMPLE_BUTTON_TRIG_SEARCH
+	bool "Trigger neighbor search with button 1"
+	default y
+
+config MULTICELL_LOCATION_SAMPLE_PRINT_DATA
+	bool "Print multicell data"
+	default y
+	help
+	  Prints cell data when it's reported from the link controller.
+
+module = MULTICELL_LOCATION_SAMPLE
+module-str = Multicell location sample
+source "${ZEPHYR_BASE}/subsys/logging/Kconfig.template.log_config"
+
+endmenu
+
+menu "Zephyr Kernel"
+source "Kconfig.zephyr"
+endmenu
