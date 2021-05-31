@@ -88,6 +88,10 @@ config MEMFAULT_LTE_METRICS
         select LTE_LC_TRACE
         depends on LTE_LINK_CONTROL
 
+config MEMFAULT_INTERNAL_FLASH_BACKED_COREDUMP
+        bool "Save coredump to internal flash instead of RAM"
+        select MEMFAULT_COREDUMP_STORAGE_CUSTOM
+
 module = MEMFAULT_INTEGRATION
 module-dep = LOG
 module-str = Memfault integration library

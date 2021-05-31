@@ -61,6 +61,10 @@ if (CONFIG_ZIGBEE)
   ncs_add_partition_manager_config(pm.yml.zboss)
 endif()
 
+if (CONFIG_MEMFAULT_INTERNAL_FLASH_BACKED_COREDUMP)
+  ncs_add_partition_manager_config(pm.yml.memfault)
+endif()
+
 if (CONFIG_NVS AND NOT CONFIG_SETTINGS_NVS)
   ncs_add_partition_manager_config(pm.yml.nvs)
 endif()

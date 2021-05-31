@@ -71,6 +71,12 @@ partition-size=0x1000
 rsource "Kconfig.template.partition_size"
 endif
 
+if MEMFAULT_INTERNAL_FLASH_BACKED_COREDUMP
+partition=MEMFAULT_STORAGE
+partition-size=0x40000
+rsource "Kconfig.template.partition_size"
+endif
+
 endmenu # Zephyr subsystem configurations
 
 
