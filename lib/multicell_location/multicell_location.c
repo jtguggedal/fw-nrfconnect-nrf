@@ -11,7 +11,6 @@
 #include <net/tls_credentials.h>
 #include <modem/modem_key_mgmt.h>
 #include <net/multicell_location.h>
-#include <cJSON_os.h>
 
 #include "location_service.h"
 
@@ -19,6 +18,7 @@
 
 #define TLS_SEC_TAG     CONFIG_MULTICELL_LOCATION_TLS_SEC_TAG
 #define HTTPS_PORT      CONFIG_MULTICELL_LOCATION_HTTPS_PORT
+#define HOSTNAME	CONFIG_MULTICELL_LOCATION_HOSTNAME
 
 LOG_MODULE_REGISTER(multicell_location, CONFIG_MULTICELL_LOCATION_LOG_LEVEL);
 
@@ -49,6 +49,12 @@ static int tls_setup(int fd)
 			 sizeof(tls_sec_tag));
 	if (err) {
 		LOG_ERR("Failed to setup TLS sec tag, error: %d", errno);
+		return -errno;
+	}
+
+	err = setsockopt(fd, SOL_TLS, TLS_HOSTNAME, HOSTNAME, sizeof(HOSTNAME) - 1);
+	if (err < 0) {
+		LOG_ERR("Failed to set hostname option, errno: %d", errno);
 		return -errno;
 	}
 
@@ -103,7 +109,6 @@ static int execute_http_request(const char *request, size_t request_len)
 
 	do {
 		bytes = send(fd, &request[offset], request_len - offset, 0);
-
 		if (bytes < 0) {
 			LOG_ERR("send() failed, errno: %d", errno);
 			err = -errno;
@@ -115,20 +120,28 @@ static int execute_http_request(const char *request, size_t request_len)
 
 	LOG_DBG("Sent %d bytes", offset);
 
-	bytes = recv(fd, recv_buf, sizeof(recv_buf), 0);
-	if (bytes < 0) {
-		LOG_ERR("recv() failed, err %d", errno);
-		err = -errno;
-		goto clean_up;
-	} else if (bytes == 0) {
-		LOG_ERR("No data received");
-		err = -ENODATA;
-		goto clean_up;
+	offset = 0;
 
+	do {
+		bytes = recv(fd, &recv_buf[offset], sizeof(recv_buf) - offset - 1, 0);
+		if (bytes < 0) {
+			LOG_ERR("recv() failed, errno: %d", errno);
+			err = -errno;
+			goto clean_up;
+		} else {
+			LOG_DBG("Received HTTP response chunk of %d bytes", bytes);
+		}
+
+		offset += bytes;
+	} while (bytes != 0);
+
+
+	LOG_DBG("Received %d bytes", offset);
+
+	if (offset > 0) {
+		LOG_DBG("HTTP response: \n%.*s\n", offset, recv_buf);
 	}
 
-	LOG_DBG("Received %d bytes", bytes);
-	LOG_DBG("HTTP response: \n%.*s\n", bytes, recv_buf);
 	LOG_DBG("Closing socket");
 
 	err = 0;
@@ -144,16 +157,9 @@ int multicell_location_get(const struct lte_lc_cells_info *cell_data,
 			   struct multicell_location *location)
 {
 	int err;
-	static bool cjson_is_init;
 
 	if ((cell_data == NULL) || (location == NULL)) {
 		return -EINVAL;
-	}
-
-	if (!cjson_is_init) {
-		cJSON_Init();
-
-		cjson_is_init = true;
 	}
 
 	err = location_service_generate_request(cell_data, http_request,
@@ -167,7 +173,7 @@ int multicell_location_get(const struct lte_lc_cells_info *cell_data,
 
 	err = execute_http_request(http_request, strlen(http_request));
 	if (err) {
-		LOG_ERR("Failed to send HTTP request");
+		LOG_ERR("HTTP request failed, error: %d", err);
 		return err;
 	}
 

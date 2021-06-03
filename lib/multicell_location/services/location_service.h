@@ -44,7 +44,7 @@ const char *location_service_get_certificate(void);
  *	  location structure.
  *
  * @param response Response from location service.
- * @param result Storage for the result from response parsing.
+ * @param location Storage for the result from response parsing.
  *
  * @return 0 on success, or -1 on failure.
  */

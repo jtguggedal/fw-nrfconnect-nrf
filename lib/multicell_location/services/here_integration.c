@@ -14,7 +14,7 @@
 
 LOG_MODULE_REGISTER(multicell_location_here, CONFIG_MULTICELL_LOCATION_LOG_LEVEL);
 
-#define HOSTNAME	CONFIG_MULTICELL_LOCATION_HERE_HOSTNAME
+#define HOSTNAME	CONFIG_MULTICELL_LOCATION_HOSTNAME
 
 #if IS_ENABLED(CONFIG_MULTICELL_LOCATION_HERE_V1)
 #define PATH		"/positioning/v1/locate"
@@ -37,6 +37,7 @@ BUILD_ASSERT(sizeof(API_APP_ID) > 1, "App ID must be configured");
 	"POST "PATH"?"AUTHENTICATION" HTTP/1.1\r\n"			\
 	"Host: "HOSTNAME"\r\n"					        \
 	"Content-Type: application/json\r\n"				\
+	"Connection: close\r\n"						\
 	"Content-Length: %d\r\n\r\n"
 
 #define HTTP_REQUEST_BODY						\
@@ -151,7 +152,7 @@ int location_service_generate_request(const struct lte_lc_cells_info *cell_data,
 		return 0;
 	}
 
-	*neighbors = 0;
+	neighbors[0] = '\0';
 
 	for (size_t i = 0; i < cell_data->ncells_count; i++) {
 		char element[50];
@@ -192,10 +193,18 @@ int location_service_parse_response(const char *response, struct multicell_locat
 	int err;
 	struct cJSON *root_obj, *location_obj, *lat_obj, *lng_obj, *accuracy_obj;
 	char *json_start, *http_status;
+	static bool cjson_is_init;
 
 	if ((response == NULL) || (location == NULL)) {
 		return -EINVAL;
 	}
+
+	if (!cjson_is_init) {
+		cJSON_Init();
+
+		cjson_is_init = true;
+	}
+
 
 	/* The expected response format is the following:
 	 *

@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <modem/lte_lc.h>
 #include <modem/modem_info.h>
+#include <cJSON_os.h>
 
 #include "location_service.h"
 
@@ -16,7 +17,12 @@
 LOG_MODULE_REGISTER(multicell_location_skyhook, CONFIG_MULTICELL_LOCATION_LOG_LEVEL);
 
 #define API_KEY 	CONFIG_MULTICELL_LOCATION_SKYHOOK_API_KEY
-#define HOSTNAME	CONFIG_MULTICELL_LOCATION_SKYHOOK_HOSTNAME
+#define HOSTNAME	CONFIG_MULTICELL_LOCATION_HOSTNAME
+
+/* The timing advance returned by the nRF9160 modem must be divided by 16
+ * to have the range expected by Skyhook.
+ */
+#define TA_DIVIDER	16
 
 /* URL and query string format:
  * https://global.skyhookwireless.com/wps2/json/location?key=<API KEY>&user=<DEVICE ID>
@@ -26,6 +32,7 @@ LOG_MODULE_REGISTER(multicell_location_skyhook, CONFIG_MULTICELL_LOCATION_LOG_LE
 	"POST /wps2/json/location?key="API_KEY"&user=%s HTTP/1.1\r\n"	\
 	"Host: "HOSTNAME"\r\n"					        \
 	"Content-Type: application/json\r\n"				\
+	"Connection: close\r\n"						\
 	"Content-Length: %d\r\n\r\n"
 
 #define HTTP_REQUEST_BODY                                               \
@@ -126,7 +133,7 @@ const char *location_service_get_certificate(void)
 	return tls_certificate;
 }
 
-static int get_rsrp(int input)
+static int adjust_rsrp(int input)
 {
 	if (input <= 0) {
 		return input - 140;
@@ -139,6 +146,9 @@ int location_service_generate_request(const struct lte_lc_cells_info *cell_data,
 				      char *buf, size_t buf_len)
 {
 	int len;
+	enum lte_lc_lte_mode mode;
+	int err;
+	char imei[20];
 
 	if ((cell_data == NULL) || (buf == NULL) || (buf_len == 0)) {
 		return -EINVAL;
@@ -148,9 +158,6 @@ int location_service_generate_request(const struct lte_lc_cells_info *cell_data,
 		LOG_WRN("No cells were found");
 		return -ENOENT;
 	}
-	enum lte_lc_lte_mode mode;
-	int err;
-	char imei[20];
 
 	err = modem_info_init();
 	if (err) {
@@ -188,8 +195,8 @@ int location_service_generate_request(const struct lte_lc_cells_info *cell_data,
 			 cell_data->current_cell.tac,
 			 cell_data->current_cell.id,
 			 cell_data->current_cell.phys_cell_id,
-			 cell_data->current_cell.timing_advance,
-			 get_rsrp(cell_data->current_cell.rsrp),
+			 cell_data->current_cell.timing_advance / TA_DIVIDER,
+			 adjust_rsrp(cell_data->current_cell.rsrp),
 			 cell_data->current_cell.earfcn);
 		if ((len < 0) || (len >= sizeof(body))) {
 			LOG_ERR("Too small buffer for HTTP request body");
@@ -205,14 +212,14 @@ int location_service_generate_request(const struct lte_lc_cells_info *cell_data,
 		return 0;
 	}
 
-	*neighbors = 0;
+	neighbors[0] = '\0';
 
 	for (size_t i = 0; i < cell_data->ncells_count; i++) {
 		char element[100];
 		len = snprintk(element, sizeof(element), HTTP_REQUEST_BODY_NEIGHBOR_ELEMENT "%s",
 			 mode == LTE_LC_LTE_MODE_LTEM ? "lte" : "nbiot",
 			 cell_data->neighbor_cells[i].phys_cell_id,
-			 get_rsrp(cell_data->current_cell.rsrp),
+			 adjust_rsrp(cell_data->neighbor_cells[i].rsrp),
 			 cell_data->neighbor_cells[i].earfcn,
 			 i + 1 < cell_data->ncells_count ? "," : "");
 		if ((len < 0) || (len >= sizeof(element))) {
@@ -231,7 +238,7 @@ int location_service_generate_request(const struct lte_lc_cells_info *cell_data,
 		 cell_data->current_cell.id,
 		 cell_data->current_cell.phys_cell_id,
 		 cell_data->current_cell.timing_advance,
-		 get_rsrp(cell_data->current_cell.rsrp),
+		 adjust_rsrp(cell_data->current_cell.rsrp),
 		 cell_data->current_cell.earfcn,
 		 neighbors);
 	if ((len < 0) || (len >= sizeof(body))) {
@@ -253,9 +260,16 @@ int location_service_parse_response(const char *response, struct multicell_locat
 	int err;
 	struct cJSON *root_obj, *location_obj, *lat_obj, *lng_obj, *accuracy_obj;
 	char *json_start, *http_status;
+	static bool cjson_is_init;
 
 	if ((response == NULL) || (location == NULL)) {
 		return -EINVAL;
+	}
+
+	if (!cjson_is_init) {
+		cJSON_Init();
+
+		cjson_is_init = true;
 	}
 
 	/* The expected response format is the following:

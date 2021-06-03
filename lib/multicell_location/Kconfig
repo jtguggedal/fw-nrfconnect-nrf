@@ -9,6 +9,7 @@ menuconfig MULTICELL_LOCATION
 	depends on NRF_MODEM_LIB
 	depends on LTE_LINK_CONTROL
 	select MODEM_KEY_MGMT
+	select CJSON_LIB
 
 if MULTICELL_LOCATION
 
@@ -21,11 +22,9 @@ config MULTICELL_LOCATION_SERVICE_NONE
 
 config MULTICELL_LOCATION_SERVICE_HERE
 	bool "HERE location service"
-	select CJSON_LIB
 
 config MULTICELL_LOCATION_SERVICE_SKYHOOK
 	bool "Skyhook location service"
-	select CJSON_LIB
 
 endchoice
 
@@ -56,8 +55,6 @@ endchoice
 
 config MULTICELL_LOCATION_HERE_HOSTNAME
 	string "HERE hostname"
-	default "pos.api.here.com" if MULTICELL_LOCATION_HERE_V1
-	default "positioning.hereapi.com" if MULTICELL_LOCATION_HERE_V2
 
 config MULTICELL_LOCATION_HERE_API_KEY
 	string "HERE API key"
@@ -80,13 +77,18 @@ config MULTICELL_LOCATION_SKYHOOK_API_KEY
 
 config MULTICELL_LOCATION_SKYHOOK_HOSTNAME
 	string "Skyhook hostname"
-	default "global.skyhookwireless.com"
 
 endif # MULTICELL_LOCATION_SERVICE_SKYHOOK
 
 config MULTICELL_LOCATION_HTTPS_PORT
 	int "HTTPS port number"
 	default 443
+
+config MULTICELL_LOCATION_HOSTNAME
+	string "Server hostname"
+	default "pos.api.here.com" if MULTICELL_LOCATION_HERE_V1
+	default "positioning.hereapi.com" if MULTICELL_LOCATION_HERE_V2
+	default "global.skyhookwireless.com" if MULTICELL_LOCATION_SERVICE_SKYHOOK
 
 config MULTICELL_LOCATION_TLS_SEC_TAG
 	int "Security tag for TLS certificates"
