@@ -7,6 +7,7 @@
 #include <zephyr.h>
 #include <modem/lte_lc.h>
 #include <cJSON.h>
+#include <cJSON_os.h>
 
 #include "location_service.h"
 

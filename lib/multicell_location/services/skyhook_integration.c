@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <modem/lte_lc.h>
 #include <modem/modem_info.h>
+#include <cJSON.h>
 #include <cJSON_os.h>
 
 #include "location_service.h"
