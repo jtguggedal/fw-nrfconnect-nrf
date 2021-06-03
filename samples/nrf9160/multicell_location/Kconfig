@@ -23,6 +23,12 @@ config MULTICELL_LOCATION_SAMPLE_PRINT_DATA
 	help
 	  Prints cell data when it's reported from the link controller.
 
+config MULTICELL_LOCATION_SAMPLE_PSM
+	bool "Enable PSM"
+
+config MULTICELL_LOCATION_SAMPLE_EDRX
+	bool "Enable eDRX"
+
 module = MULTICELL_LOCATION_SAMPLE
 module-str = Multicell location sample
 source "${ZEPHYR_BASE}/subsys/logging/Kconfig.template.log_config"

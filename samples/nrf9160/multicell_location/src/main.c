@@ -91,14 +91,28 @@ static int lte_connect(void)
 {
 	int err;
 
-	err = lte_lc_psm_req(true);
-	if (err) {
-		LOG_ERR("Failed to request PSM, error: %d", err);
+	if (IS_ENABLED(CONFIG_MULTICELL_LOCATION_SAMPLE_PSM)) {
+		err = lte_lc_psm_req(true);
+		if (err) {
+			LOG_ERR("Failed to request PSM, error: %d", err);
+		}
+	} else {
+		err = lte_lc_psm_req(false);
+		if (err) {
+			LOG_ERR("Failed to disable PSM, error: %d", err);
+		}
 	}
 
-	err = lte_lc_edrx_req(true);
-	if (err) {
-		LOG_ERR("Failed to request eDRX, error: %d", err);
+	if (IS_ENABLED(CONFIG_MULTICELL_LOCATION_SAMPLE_EDRX)) {
+		err = lte_lc_edrx_req(true);
+		if (err) {
+			LOG_ERR("Failed to request eDRX, error: %d", err);
+		}
+	} else {
+		err = lte_lc_edrx_req(false);
+		if (err) {
+			LOG_ERR("Failed to disable eDRX, error: %d", err);
+		}
 	}
 
 	err = lte_lc_init_and_connect_async(lte_handler);
