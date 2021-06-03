@@ -14,6 +14,9 @@
 
 LOG_MODULE_REGISTER(multicell_location_sample, CONFIG_MULTICELL_LOCATION_SAMPLE_LOG_LEVEL);
 
+BUILD_ASSERT(!IS_ENABLED(CONFIG_LTE_AUTO_INIT_AND_CONNECT),
+	"The sample does not support automatic LTE connection establishment");
+
 static K_SEM_DEFINE(lte_connected, 0, 1);
 static K_SEM_DEFINE(cell_data_ready, 0, 1);
 static struct k_work_delayable periodic_search_work;
@@ -86,35 +89,30 @@ static void lte_handler(const struct lte_lc_evt *const evt)
 
 static int lte_connect(void)
 {
-	if (IS_ENABLED(CONFIG_LTE_AUTO_INIT_AND_CONNECT)) {
-		/* Do nothing, modem is already configured and LTE connected. */
-		return 0;
-	} else {
-		int err;
+	int err;
 
-		err = lte_lc_psm_req(true);
-		if (err) {
-			LOG_ERR("Failed to request PSM, error: %d", err);
-		}
-
-		err = lte_lc_edrx_req(true);
-		if (err) {
-			LOG_ERR("Failed to request eDRX, error: %d", err);
-		}
-
-		err = lte_lc_init_and_connect_async(lte_handler);
-		if (err) {
-			LOG_ERR("Modem could not be configured, error: %d",
-				err);
-			return err;
-		}
-
-		/* Check LTE events of type LTE_LC_EVT_NW_REG_STATUS in
-		 * lte_handler() to determine when the LTE link is up.
-		 */
-
-		return 0;
+	err = lte_lc_psm_req(true);
+	if (err) {
+		LOG_ERR("Failed to request PSM, error: %d", err);
 	}
+
+	err = lte_lc_edrx_req(true);
+	if (err) {
+		LOG_ERR("Failed to request eDRX, error: %d", err);
+	}
+
+	err = lte_lc_init_and_connect_async(lte_handler);
+	if (err) {
+		LOG_ERR("Modem could not be configured, error: %d",
+			err);
+		return err;
+	}
+
+	/* Check LTE events of type LTE_LC_EVT_NW_REG_STATUS in
+		* lte_handler() to determine when the LTE link is up.
+		*/
+
+	return 0;
 }
 
 static void button_handler(uint32_t button_states, uint32_t has_changed)
