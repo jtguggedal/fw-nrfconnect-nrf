@@ -193,44 +193,54 @@ int multicell_location_provision_certificate(bool overwrite)
 	uint8_t unused;
 	const char *certificate = location_service_get_certificate();
 
-	if (certificate == NULL) {
-		LOG_ERR("No certificate was provided by the location service");
-		return -EFAULT;
-	}
+	// if (certificate == NULL) {
+	// 	LOG_ERR("No certificate was provided by the location service");
+	// 	return -EFAULT;
+	// }
 
-	err = modem_key_mgmt_exists(TLS_SEC_TAG,
-				    MODEM_KEY_MGMT_CRED_TYPE_CA_CHAIN,
-				    &exists, &unused);
-	if (err) {
-		LOG_ERR("Failed to check for certificates err %d", err);
-		return err;
-	}
+	// err = modem_key_mgmt_exists(TLS_SEC_TAG,
+	// 			    MODEM_KEY_MGMT_CRED_TYPE_CA_CHAIN,
+	// 			    &exists, &unused);
+	// if (err) {
+	// 	LOG_ERR("Failed to check for certificates err %d", err);
+	// 	return err;
+	// }
 
-	if (exists && overwrite) {
-		/* For the sake of simplicity we delete what is provisioned
-		 * with our security tag and reprovision our certificate.
-		 */
-		err = modem_key_mgmt_delete(TLS_SEC_TAG,
-					    MODEM_KEY_MGMT_CRED_TYPE_CA_CHAIN);
-		if (err) {
-			LOG_ERR("Failed to delete existing certificate, err %d", err);
-		}
-	} else if (exists && !overwrite) {
-		LOG_INF("A certificate is already provisioned to sec tag %d",
-			TLS_SEC_TAG);
-		return 0;
-	}
+	// if (exists && overwrite) {
+	// 	/* For the sake of simplicity we delete what is provisioned
+	// 	 * with our security tag and reprovision our certificate.
+	// 	 */
+	// 	err = modem_key_mgmt_delete(TLS_SEC_TAG,
+	// 				    MODEM_KEY_MGMT_CRED_TYPE_CA_CHAIN);
+	// 	if (err) {
+	// 		LOG_ERR("Failed to delete existing certificate, err %d", err);
+	// 	}
+	// } else if (exists && !overwrite) {
+	// 	LOG_INF("A certificate is already provisioned to sec tag %d",
+	// 		TLS_SEC_TAG);
+	// 	return 0;
+	// }
 
-	LOG_INF("Provisioning certificate");
+	// LOG_INF("Provisioning certificate");
 
-	/*  Provision certificate to the modem */
-	err = modem_key_mgmt_write(TLS_SEC_TAG,
-				   MODEM_KEY_MGMT_CRED_TYPE_CA_CHAIN,
-				   certificate, strlen(certificate));
-	if (err) {
-		LOG_ERR("Failed to provision certificate, err %d", err);
-		return err;
-	}
+	// /*  Provision certificate to the modem */
+	// err = modem_key_mgmt_write(TLS_SEC_TAG,
+	// 			   MODEM_KEY_MGMT_CRED_TYPE_CA_CHAIN,
+	// 			   certificate, strlen(certificate));
+	// if (err) {
+	// 	LOG_ERR("Failed to provision certificate, err %d", err);
+	// 	return err;
+	// }
+
+
+
+
+        err = tls_credential_add(TLS_SEC_TAG, TLS_CREDENTIAL_CA_CERTIFICATE,
+                                certificate, strlen(certificate) + 1);
+        if (err != 0) {
+                printk("Failed to register CA certificate: %d", err);
+                return err;
+        }
 
 	return 0;
 }

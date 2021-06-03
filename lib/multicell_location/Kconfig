@@ -26,6 +26,9 @@ config MULTICELL_LOCATION_SERVICE_HERE
 config MULTICELL_LOCATION_SERVICE_SKYHOOK
 	bool "Skyhook location service"
 
+config MULTICELL_LOCATION_SERVICE_POLTE
+	bool "Polte location service"
+
 endchoice
 
 if MULTICELL_LOCATION_SERVICE_HERE
@@ -80,6 +83,16 @@ config MULTICELL_LOCATION_SKYHOOK_HOSTNAME
 
 endif # MULTICELL_LOCATION_SERVICE_SKYHOOK
 
+if MULTICELL_LOCATION_SERVICE_POLTE
+
+config MULTICELL_LOCATION_POLTE_CUSTOMER_ID
+	string "Polte customer ID"
+
+config MULTICELL_LOCATION_POLTE_API_TOKEN
+	string "Polte API token"
+
+endif # MULTICELL_LOCATION_SERVICE_POLTE
+
 config MULTICELL_LOCATION_HTTPS_PORT
 	int "HTTPS port number"
 	default 443
@@ -89,11 +102,13 @@ config MULTICELL_LOCATION_HOSTNAME
 	default "pos.api.here.com" if MULTICELL_LOCATION_HERE_V1
 	default "positioning.hereapi.com" if MULTICELL_LOCATION_HERE_V2
 	default "global.skyhookwireless.com" if MULTICELL_LOCATION_SERVICE_SKYHOOK
+	default "polte.io" if MULTICELL_LOCATION_SERVICE_POLTE
 
 config MULTICELL_LOCATION_TLS_SEC_TAG
 	int "Security tag for TLS certificates"
 	default 175 if MULTICELL_LOCATION_SERVICE_HERE
 	default 176 if MULTICELL_LOCATION_SERVICE_SKYHOOK
+	default 177 if MULTICELL_LOCATION_SERVICE_POLTE
 	default -1
 	help
 	  Security tag where the required TLS certificates for the selected
@@ -101,7 +116,7 @@ config MULTICELL_LOCATION_TLS_SEC_TAG
 
 config MULTICELL_LOCATION_SEND_BUF_SIZE
 	int "Send buffer size"
-	default 2048 if MULTICELL_LOCATION_SERVICE_SKYHOOK
+	default 2048 if( MULTICELL_LOCATION_SERVICE_SKYHOOK || MULTICELL_LOCATION_SERVICE_POLTE)
 	default 1024
 	help
 	  Size of the buffer used to store the generated HTTP request that's sent
@@ -109,6 +124,7 @@ config MULTICELL_LOCATION_SEND_BUF_SIZE
 
 config MULTICELL_LOCATION_RECV_BUF_SIZE
 	int "Receive buffer size"
+	default 1536 if MULTICELL_LOCATION_SERVICE_POLTE
 	default 512
 	help
 	  Size of the buffer used to store the response from the location

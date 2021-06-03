@@ -13,3 +13,8 @@ zephyr_library_sources_ifdef(
 zephyr_library_sources_ifdef(
 	CONFIG_MULTICELL_LOCATION_SERVICE_SKYHOOK
 	skyhook_integration.c)
+
+zephyr_library_sources_ifdef(
+	CONFIG_MULTICELL_LOCATION_SERVICE_POLTE
+	polte_integration.c)
+
