@@ -239,6 +239,15 @@ void start_execute(void)
 		return;
 	}
 
+#if defined(CONFIG_NRF_MODEM_LIB_TRACE_ENABLED)
+	/* Enable modem trace */
+	static const char mdm_trace[] = "AT%XMODEMTRACE=1,2";
+
+	if (at_cmd_write(mdm_trace, NULL, 0, NULL) != 0) {
+		LOG_ERR("Failed to enable modem trace");
+	}
+#endif
+
 	if (fota_type == DFU_TARGET_IMAGE_TYPE_MCUBOOT) {
 		/* All initializations were successful mark image as working so that we
 		 * will not revert upon reboot.
