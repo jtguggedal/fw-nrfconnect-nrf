@@ -642,6 +642,7 @@ bool nrf_cloud_pgps_loading(void)
 
 int nrf_cloud_pgps_request(const struct gps_pgps_request *request)
 {
+#if IS_ENABLED(CONFIG_NRF_CLOUD_MQTT)
 	int err = 0;
 	cJSON *data_obj;
 	cJSON *pgps_req_obj;
@@ -725,10 +726,17 @@ cleanup:
 	cJSON_Delete(pgps_req_obj);
 
 	return err;
+
+#else /* IS_ENABLED(CONFIG_NRF_CLOUD_MQTT) */
+
+	LOG_ERR("CONFIG_NRF_CLOUD_MQTT must be enabled in order to use this API");
+	return -ENOTSUP;
+#endif
 }
 
 int nrf_cloud_pgps_request_all(void)
 {
+#if IS_ENABLED(CONFIG_NRF_CLOUD_MQTT)
 	uint16_t gps_day;
 	uint32_t gps_time_of_day;
 	int err;
@@ -760,10 +768,17 @@ int nrf_cloud_pgps_request_all(void)
 	};
 
 	return nrf_cloud_pgps_request(&request);
+
+#else /* IS_ENABLED(CONFIG_NRF_CLOUD_MQTT) */
+
+	LOG_ERR("CONFIG_NRF_CLOUD_MQTT must be enabled in order to use this API");
+	return -ENOTSUP;
+#endif
 }
 
 int nrf_cloud_pgps_preemptive_updates(void)
 {
+#if IS_ENABLED(CONFIG_NRF_CLOUD_MQTT)
 	/* keep unexpired, read newer subsequent to last */
 	struct gps_pgps_request request;
 	int current = index.cur_pnum;
@@ -801,7 +816,15 @@ int nrf_cloud_pgps_preemptive_updates(void)
 	request.gps_time_of_day = gps_time_of_day;
 	request.prediction_count = npgps_num_free();
 	request.prediction_period_min = period_min;
+
 	return nrf_cloud_pgps_request(&request);
+
+#else /* IS_ENABLED(CONFIG_NRF_CLOUD_MQTT) */
+
+	LOG_ERR("CONFIG_NRF_CLOUD_MQTT must be enabled in order to use this API");
+
+	return -ENOTSUP;
+#endif
 }
 
 int nrf_cloud_pgps_inject(struct nrf_cloud_pgps_prediction *p,

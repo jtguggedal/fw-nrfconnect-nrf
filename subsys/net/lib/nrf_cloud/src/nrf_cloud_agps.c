@@ -114,6 +114,7 @@ static int json_add_types_array(cJSON *const obj, enum gps_agps_type *types,
 
 static int json_send_to_cloud(cJSON *const agps_request)
 {
+#if IS_ENABLED(CONFIG_NRF_CLOUD_MQTT)
 	__ASSERT_NO_MSG(agps_request != NULL);
 
 	char *msg_string;
@@ -142,6 +143,13 @@ static int json_send_to_cloud(cJSON *const agps_request)
 	k_free(msg_string);
 
 	return err;
+
+#else /* IS_ENABLED(CONFIG_NRF_CLOUD_MQTT) */
+
+	LOG_ERR("CONFIG_NRF_CLOUD_MQTT must be enabled in order to use this API");
+
+	return -ENOTSUP;
+#endif
 }
 
 bool nrf_cloud_agps_request_in_progress(void)
@@ -151,6 +159,7 @@ bool nrf_cloud_agps_request_in_progress(void)
 
 int nrf_cloud_agps_request(const struct gps_agps_request request)
 {
+#if IS_ENABLED(CONFIG_NRF_CLOUD_MQTT)
 	int err;
 	enum gps_agps_type types[9];
 	size_t type_count = 0;
@@ -231,10 +240,18 @@ cleanup:
 	cJSON_Delete(agps_req_obj);
 
 	return err;
+
+#else /* IS_ENABLED(CONFIG_NRF_CLOUD_MQTT) */
+
+	LOG_ERR("CONFIG_NRF_CLOUD_MQTT must be enabled in order to use this API");
+
+	return -ENOTSUP;
+#endif
 }
 
 int nrf_cloud_agps_request_all(void)
 {
+#if IS_ENABLED(CONFIG_NRF_CLOUD_MQTT)
 	struct gps_agps_request request = {
 		.sv_mask_ephe = 0xFFFFFFFF,
 		.sv_mask_alm = 0xFFFFFFFF,
@@ -246,6 +263,13 @@ int nrf_cloud_agps_request_all(void)
 	};
 
 	return nrf_cloud_agps_request(request);
+
+#else /* IS_ENABLED(CONFIG_NRF_CLOUD_MQTT) */
+
+	LOG_ERR("CONFIG_NRF_CLOUD_MQTT must be enabled in order to use this API");
+
+	return -ENOTSUP;
+#endif
 }
 
 /* Convert nrf_socket A-GPS type to GPS API type. */
