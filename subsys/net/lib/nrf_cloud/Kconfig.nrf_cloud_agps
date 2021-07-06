@@ -1,0 +1,21 @@
+# Copyright (c) 2021 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+menuconfig NRF_CLOUD_AGPS
+	bool "nRF Cloud Assisted GPS (A-GPS)"
+	depends on NRF9160_GPS
+	depends on MODEM_INFO
+	depends on MODEM_INFO_ADD_NETWORK
+
+if NRF_CLOUD_AGPS
+
+config NRF_CLOUD_AGPS_AUTO
+	bool "Automatically request A-GPS on bootup"
+
+module = NRF_CLOUD_AGPS
+module-str = nRF Cloud A-GPS
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # NRF_CLOUD_AGPS
