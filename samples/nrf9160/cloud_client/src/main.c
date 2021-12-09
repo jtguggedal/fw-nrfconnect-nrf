@@ -309,6 +309,8 @@ static int test_func(void)
 		return err;
 	}
 
+	k_sleep(K_MSEC(100));
+
 	err = lte_lc_init();
 	if (err) {
 		LOG_ERR("lte_lc_init failed, error: %d", err);
