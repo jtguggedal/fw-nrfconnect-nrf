@@ -533,7 +533,7 @@ static int init_and_config(void)
 	int err;
 
 	if (is_initialized) {
-		return -EALREADY;
+		return 0;
 	}
 
 	k_sem_init(&link, 0, 1);

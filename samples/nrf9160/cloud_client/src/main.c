@@ -11,6 +11,11 @@
 #include <net/socket.h>
 #include <dk_buttons_and_leds.h>
 
+#include <modem/at_cmd.h>
+#include <modem/at_notif.h>
+
+#include <modem/nrf_modem_lib.h>
+
 #include <logging/log.h>
 
 LOG_MODULE_REGISTER(cloud_client, CONFIG_CLOUD_CLIENT_LOG_LEVEL);
@@ -250,11 +255,77 @@ static void button_handler(uint32_t button_states, uint32_t has_changed)
 }
 #endif
 
+
+
+static int test_func(void)
+{
+	int err;
+
+	err = nrf_modem_lib_init(NORMAL_MODE);
+	if (err) {
+		LOG_ERR("nrf_modem_lib_init failed, error: %d", err);
+		return err;
+	}
+
+	err = at_cmd_init();
+	if (err) {
+		LOG_ERR("at_cmd_init failed, error: %d", err);
+		return err;
+	}
+
+	err = at_notif_init();
+	if (err) {
+		LOG_ERR("at_notif_init failed, error: %d", err);
+		return err;
+	}
+
+	err = lte_lc_init();
+	if (err) {
+		LOG_ERR("lte_lc_init failed, error: %d", err);
+		return err;
+	}
+
+	err = nrf_modem_lib_shutdown();
+	if (err) {
+		LOG_ERR("modem_lib_shutdown failed, error: %d", err);
+		return err;
+	}
+
+	err = nrf_modem_lib_init(NORMAL_MODE);
+	if (err) {
+		LOG_ERR("nrf_modem_lib_init failed, error: %d", err);
+		return err;
+	}
+
+	err = at_cmd_init();
+	if (err) {
+		LOG_ERR("at_cmd_init failed, error: %d", err);
+		return err;
+	}
+
+	err = at_notif_init();
+	if (err) {
+		LOG_ERR("at_notif_init failed, error: %d", err);
+		return err;
+	}
+
+	err = lte_lc_init();
+	if (err) {
+		LOG_ERR("lte_lc_init failed, error: %d", err);
+		return err;
+	}
+
+	return 0;
+}
+
 void main(void)
 {
 	int err;
 
 	LOG_INF("Cloud client has started");
+
+	err = test_func();
+	__ASSERT(err == 0, "test_func() failed, error: %d", err);
 
 	cloud_backend = cloud_get_binding(CONFIG_CLOUD_BACKEND);
 	__ASSERT(cloud_backend != NULL, "%s backend not found",
