@@ -56,7 +56,7 @@ static int common_socket_fd;
 static k_tid_t socket_tid;
 static struct k_thread socket_thread;
 static at_cmd_handler_t notification_handler;
-static atomic_t shutdown_mode;
+static K_SEM_DEFINE(shutdown_mode, 0, 1);
 
 /* Mutex to guard the at_cmd init from simultaneous entry. */
 static K_MUTEX_DEFINE(at_cmd_init_mutex);
@@ -255,19 +255,16 @@ static void socket_thread_fn(void *arg1, void *arg2, void *arg3)
 		if (bytes_read < 0) {
 			if (errno == EHOSTDOWN) {
 				LOG_DBG("AT host is going down, sleeping");
-				atomic_set(&shutdown_mode, 1);
 				close(common_socket_fd);
 				nrf_modem_lib_shutdown_wait();
 				LOG_DBG("AT host available, "
 					"starting the thread again");
-				atomic_clear(&shutdown_mode);
 				if (open_socket() != 0) {
 					LOG_ERR("Failed to open AT socket "
 						"after nrf_modem_lib init, "
 						"err: %d", errno);
 				}
-
-
+				k_sem_give(&shutdown_mode);
 				continue;
 			} else {
 				LOG_ERR("AT socket recv failed with err %d",
@@ -345,10 +342,6 @@ int at_cmd_write_with_callback(const char *const cmd,
 	struct cmd_item command;
 	int ret;
 
-	if (atomic_get(&shutdown_mode) == 1) {
-		return -EHOSTDOWN;
-	}
-
 	if (cmd == NULL) {
 		LOG_ERR("cmd is NULL");
 		return -EINVAL;
@@ -385,10 +378,6 @@ int at_cmd_write(const char *const cmd,
 {
 	struct cmd_item command;
 	struct resp_item ret;
-
-	if (atomic_get(&shutdown_mode) == 1) {
-		return -EHOSTDOWN;
-	}
 
 	__ASSERT(k_current_get() != socket_tid,
 		 "at_cmd deadlock: socket thread blocking self\n");
@@ -454,14 +443,18 @@ void at_cmd_set_notification_handler(at_cmd_handler_t handler)
 
 static int at_cmd_driver_init(const struct device *dev)
 {
-	k_mutex_lock(&at_cmd_init_mutex, K_FOREVER);
+	int err;
 	static bool initialized;
+
+	k_mutex_lock(&at_cmd_init_mutex, K_FOREVER);
 	if (initialized) {
+		if (k_sem_count_get(&shutdown_mode) != 1) {
+			LOG_INF("Waiting for libmodem re-initialization..");
+			k_sem_take(&shutdown_mode, K_FOREVER);
+		}
 		k_mutex_unlock(&at_cmd_init_mutex);
 		return 0;
 	}
-
-	int err;
 
 	ARG_UNUSED(dev);
 
