@@ -13,6 +13,8 @@ static char *get_evt_type_str(enum gps_module_event_type type)
 	switch (type) {
 	case GPS_EVT_DATA_READY:
 		return "GPS_EVT_DATA_READY";
+	case GPS_EVT_NMEA:
+		return "GPS_EVT_NMEA";
 	case GPS_EVT_TIMEOUT:
 		return "GPS_EVT_TIMEOUT";
 	case GPS_EVT_ACTIVE:

@@ -68,6 +68,7 @@ static enum state_type {
  * the buffers, and empty the buffers in batches upon a reconnect.
  */
 static struct cloud_data_gps gps_buf[CONFIG_DATA_GPS_BUFFER_COUNT];
+static struct cloud_data_gps nmea_buf[CONFIG_DATA_NMEA_BUFFER_COUNT];
 static struct cloud_data_sensors sensors_buf[CONFIG_DATA_SENSOR_BUFFER_COUNT];
 static struct cloud_data_ui ui_buf[CONFIG_DATA_UI_BUFFER_COUNT];
 static struct cloud_data_accelerometer accel_buf[CONFIG_DATA_ACCELEROMETER_BUFFER_COUNT];
@@ -82,6 +83,7 @@ static struct cloud_data_modem_static modem_stat;
 
 /* Head of ringbuffers. */
 static int head_gps_buf;
+static int head_nmea_buf;
 static int head_sensor_buf;
 static int head_modem_dyn_buf;
 static int head_ui_buf;
@@ -629,6 +631,21 @@ static void data_encode(void)
 		break;
 	default:
 		LOG_ERR("Error batch-enconding data: %d", err);
+		SEND_ERROR(data, DATA_EVT_ERROR, err);
+		return;
+	}
+
+	err = cloud_codec_encode_nmea_data(&codec, nmea_buf, ARRAY_SIZE(nmea_buf));
+	switch (err) {
+	case 0:
+		LOG_DBG("NMEA data encoded successfully");
+		data_send(DATA_EVT_DATA_SEND_BATCH, BATCH, &codec);
+		break;
+	case -ENODATA:
+		LOG_DBG("No NMEA data to encode, ringbuffers are empty");
+		break;
+	default:
+		LOG_ERR("Error enconding NMEA data: %d", err);
 		SEND_ERROR(data, DATA_EVT_ERROR, err);
 		return;
 	}
@@ -1280,6 +1297,20 @@ static void on_all_states(struct data_msg_data *msg)
 						ARRAY_SIZE(gps_buf));
 
 		requested_data_status_set(APP_DATA_GNSS);
+	}
+
+	if (IS_EVENT(msg, gps, GPS_EVT_NMEA)) {
+		struct cloud_data_gps new_nmea_data = {
+			.gps_ts = msg->module.gps.data.gps.timestamp,
+			.queued = true,
+			.format = msg->module.gps.data.gps.format
+		};
+
+		strcpy(new_nmea_data.nmea, msg->module.gps.data.gps.nmea);
+
+		cloud_codec_populate_nmea_buffer(nmea_buf, &new_nmea_data,
+						&head_nmea_buf,
+						ARRAY_SIZE(nmea_buf));
 	}
 
 	if (IS_EVENT(msg, modem, MODEM_EVT_NEIGHBOR_CELLS_DATA_READY)) {

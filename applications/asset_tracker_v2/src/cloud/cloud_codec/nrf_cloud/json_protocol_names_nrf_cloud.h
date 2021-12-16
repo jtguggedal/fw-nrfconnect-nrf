@@ -37,6 +37,7 @@
 
 #define APP_ID_BUTTON	   "BUTTON"
 #define APP_ID_GPS	   "GPS"
+#define APP_ID_NMEA	   "NMEA"
 #define APP_ID_HUMIDITY	   "HUMID"
 #define APP_ID_TEMPERATURE "TEMP"
 #define APP_ID_RSRP	   "RSRP"

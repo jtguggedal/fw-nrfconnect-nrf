@@ -275,6 +275,11 @@ int cloud_codec_encode_batch_data(
 				size_t accel_buf_count,
 				size_t bat_buf_count);
 
+int cloud_codec_encode_nmea_data(
+	struct cloud_codec_data *output,
+	struct cloud_data_gps *nmea_buf,
+	size_t nmea_buf_count);
+
 void cloud_codec_populate_sensor_buffer(
 				struct cloud_data_sensors *sensor_buffer,
 				struct cloud_data_sensors *new_sensor_data,
@@ -300,6 +305,11 @@ void cloud_codec_populate_bat_buffer(struct cloud_data_battery *bat_buffer,
 void cloud_codec_populate_gps_buffer(struct cloud_data_gps *gps_buffer,
 				     struct cloud_data_gps *new_gps_data,
 				     int *head_gps_buf,
+				     size_t buffer_count);
+
+void cloud_codec_populate_nmea_buffer(struct cloud_data_gps *nmea_buffer,
+				     struct cloud_data_gps *new_nmea_data,
+				     int *head_nmea_buf,
 				     size_t buffer_count);
 
 void cloud_codec_populate_modem_dynamic_buffer(

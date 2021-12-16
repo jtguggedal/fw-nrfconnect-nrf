@@ -25,6 +25,7 @@ LOG_MODULE_REGISTER(cloud_codec, CONFIG_CLOUD_CODEC_LOG_LEVEL);
 /* Data types that are supported in batch messages. */
 enum batch_data_type {
 	GPS,
+	NMEA,
 	ENVIRONMENTALS,
 	BUTTON,
 	RSRP
@@ -135,6 +136,19 @@ static int add_batch_data(cJSON *array, enum batch_data_type type, void *buf, si
 			struct cloud_data_gps *data = (struct cloud_data_gps *)buf;
 
 			err =  add_data(array, APP_ID_GPS, data[i].nmea,
+					&data[i].gps_ts, data[i].queued, NULL);
+			if (err && err != -ENODATA) {
+				return err;
+			}
+
+			data[i].queued = false;
+			break;
+		}
+		case NMEA: {
+			int err;
+			struct cloud_data_gps *data = (struct cloud_data_gps *)buf;
+
+			err =  add_data(array, APP_ID_NMEA, data[i].nmea,
 					&data[i].gps_ts, data[i].queued, NULL);
 			if (err && err != -ENODATA) {
 				return err;
@@ -783,6 +797,57 @@ exit:
 	/* Clear buffers that are not handled by this function. */
 	memset(bat_buf, 0, bat_buf_count * sizeof(struct cloud_data_battery));
 	memset(accel_buf, 0, accel_buf_count * sizeof(struct cloud_data_accelerometer));
+	cJSON_Delete(root_array);
+	return err;
+}
+
+int cloud_codec_encode_nmea_data(
+	struct cloud_codec_data *output,
+	struct cloud_data_gps *nmea_buf,
+	size_t nmea_buf_count)
+{
+	int err;
+	char *buffer;
+
+	cJSON *root_array = cJSON_CreateArray();
+
+	if (root_array == NULL) {
+		return -ENOMEM;
+	}
+
+	err = add_batch_data(root_array, NMEA, nmea_buf, nmea_buf_count);
+	if (err) {
+		LOG_ERR("Failed adding NMEA data to array, error: %d", err);
+		goto exit;
+	}
+
+	if (cJSON_GetArraySize(root_array) == 0) {
+		err = -ENODATA;
+		LOG_DBG("No data to encode, JSON string empty...");
+		goto exit;
+	} else {
+		/* At this point err can be either 0 or -ENODATA. Explicitly set err to 0 if
+		 * objects has been added to the root object to avoid propagating -ENODATA.
+		 */
+		err = 0;
+	}
+
+	buffer = cJSON_PrintUnformatted(root_array);
+	if (buffer == NULL) {
+		LOG_ERR("Failed to allocate memory for JSON string");
+
+		err = -ENOMEM;
+		goto exit;
+	}
+
+	if (IS_ENABLED(CONFIG_CLOUD_CODEC_LOG_LEVEL_DBG)) {
+		json_print_obj("Encoded batch message:\n", root_array);
+	}
+
+	output->buf = buffer;
+	output->len = strlen(buffer);
+
+exit:
 	cJSON_Delete(root_array);
 	return err;
 }

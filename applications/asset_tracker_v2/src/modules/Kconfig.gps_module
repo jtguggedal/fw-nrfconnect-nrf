@@ -7,28 +7,58 @@
 menuconfig GPS_MODULE
 	bool "GPS module"
 	select DATE_TIME
+	select RING_BUFFER
 	default y
 
 if GPS_MODULE
 
 choice GPS_MODULE_DATA_FORMAT
 	prompt "Select GNSS data format"
-	default GPS_MODULE_NMEA if NRF_CLOUD_MQTT
-	default GPS_MODULE_PVT
+	default GPS_MODULE_FORMAT_NMEA if NRF_CLOUD_MQTT
+	default GPS_MODULE_FORMAT_PVT
 
-config GPS_MODULE_PVT
+config GPS_MODULE_FORMAT_PVT
 	bool "Include PVT data in GNSS fix event"
 	help
 	  PVT stands for position, velocity, and time.
 	  The GPS data will be included as a struct in the GPS_EVT_DATA_READY event propagated by this module upon a fix.
 
-config GPS_MODULE_NMEA
-	bool "Include NMEA data in GNSS fix event"
+config GPS_MODULE_FORMAT_NMEA
+	bool "Include NMEA GGA sentence in GNSS fix event"
+	select GPS_MODULE_NMEA
+	select GPS_MODULE_NMEA_GGA
 	help
 	  NMEA is a defined ASCII representation of GPS data.
 	  The GPS data will be included as a string in the GPS_EVT_DATA_READY event.
-
 endchoice
+
+config GPS_MODULE_NMEA
+	bool
+
+config GPS_MODULE_NMEA_DEBUG
+	bool "Enable NMEA for debugging"
+	select GPS_MODULE_NMEA
+	help
+	  Enable all NMEA types and send a GPS_EVT_NMEA event for each.
+
+if GPS_MODULE_NMEA
+
+config GPS_MODULE_NMEA_GGA
+	bool "Use NMEA GGA"
+
+config GPS_MODULE_NMEA_GLL
+	bool "Use NMEA GLL"
+
+config GPS_MODULE_NMEA_GSA
+	bool "Use NMEA GSA"
+
+config GPS_MODULE_NMEA_GSV
+	bool "Use NMEA GSV"
+
+config GPS_MODULE_NMEA_RMC
+	bool "Use NMEA RMC"
+
+endif # GPS_MODULE_NMEA
 
 config GPS_MODULE_PGPS_STORE_LOCATION
 	bool "Store location to modem upon fix"

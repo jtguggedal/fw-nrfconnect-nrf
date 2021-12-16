@@ -140,6 +140,31 @@ void cloud_codec_populate_gps_buffer(struct cloud_data_gps *gps_buffer,
 		buffer_count - 1);
 }
 
+void cloud_codec_populate_nmea_buffer(struct cloud_data_gps *nmea_buffer,
+				      struct cloud_data_gps *new_nmea_data,
+				      int *head_nmea_buf,
+				      size_t buffer_count)
+{
+	if (!IS_ENABLED(CONFIG_DATA_NMEA_BUFFER_STORE)) {
+		return;
+	}
+
+	if (!new_nmea_data->queued) {
+		return;
+	}
+
+	/* Go to start of buffer if end is reached. */
+	*head_nmea_buf += 1;
+	if (*head_nmea_buf == buffer_count) {
+		*head_nmea_buf = 0;
+	}
+
+	nmea_buffer[*head_nmea_buf] = *new_nmea_data;
+
+	LOG_DBG("Entry: %d of %d in NMEA buffer filled", *head_nmea_buf,
+		buffer_count - 1);
+}
+
 void cloud_codec_populate_modem_dynamic_buffer(
 				struct cloud_data_modem_dynamic *modem_buffer,
 				struct cloud_data_modem_dynamic *new_modem_data,

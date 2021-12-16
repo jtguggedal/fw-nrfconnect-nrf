@@ -27,6 +27,7 @@ extern "C" {
 /** @brief GPS event types submitted by GPS module. */
 enum gps_module_event_type {
 	GPS_EVT_DATA_READY,
+	GPS_EVT_NMEA,
 	GPS_EVT_TIMEOUT,
 	GPS_EVT_ACTIVE,
 	GPS_EVT_INACTIVE,

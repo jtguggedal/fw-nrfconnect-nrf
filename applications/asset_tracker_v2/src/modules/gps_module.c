@@ -6,6 +6,7 @@
 
 #include <zephyr.h>
 #include <stdio.h>
+#include <sys/ring_buffer.h>
 #include <date_time.h>
 #include <event_manager.h>
 #include <modem/at_cmd.h>
@@ -34,6 +35,13 @@ LOG_MODULE_REGISTER(MODULE, CONFIG_GPS_MODULE_LOG_LEVEL);
 #define GNSS_EVENT_THREAD_STACK_SIZE 768
 #define GNSS_EVENT_THREAD_PRIORITY   5
 
+#define NMEA_ENABLED_COUNT 				\
+	(IS_ENABLED(CONFIG_GPS_MODULE_NMEA_GGA) +	\
+	 IS_ENABLED(CONFIG_GPS_MODULE_NMEA_GLL)	+	\
+	 IS_ENABLED(CONFIG_GPS_MODULE_NMEA_GSA)	+	\
+	 (IS_ENABLED(CONFIG_GPS_MODULE_NMEA_GSV) * 4) +	\
+	 IS_ENABLED(CONFIG_GPS_MODULE_NMEA_RMC))
+
 struct gps_msg_data {
 	union {
 		struct app_module_event app;
@@ -60,10 +68,10 @@ static enum sub_state_type {
 static uint16_t gnss_timeout = GNSS_TIMEOUT_DEFAULT;
 
 static struct nrf_modem_gnss_pvt_data_frame pvt_data;
-static struct nrf_modem_gnss_nmea_data_frame nmea_data;
 static struct nrf_modem_gnss_agps_data_frame agps_data;
 
-K_MSGQ_DEFINE(event_msgq, sizeof(int), 10, 4);
+K_MSGQ_DEFINE(event_msgq, sizeof(int), 16, 4);
+RING_BUF_DECLARE(nmea_buf, sizeof(struct nrf_modem_gnss_nmea_data_frame) * (NMEA_ENABLED_COUNT));
 
 static struct module_stats {
 	/* Uptime set when GPS search is started. Used to calculate search time for
@@ -86,7 +94,7 @@ static void search_start(void);
 static void inactive_send(void);
 static void time_set(void);
 static void data_send_pvt(void);
-static void data_send_nmea(void);
+static void data_send_nmea(char *nmea_str, bool is_fix);
 static void print_pvt(void);
 
 /* Convenience functions used in internal state handling. */
@@ -208,6 +216,36 @@ static void gnss_event_handler(int event)
 {
 	int err;
 
+	LOG_DBG("Type: %d", event);
+
+	if (event == NRF_MODEM_GNSS_EVT_NMEA) {
+		/* Copy NMEA string to buffer, increase count. */
+		struct nrf_modem_gnss_nmea_data_frame *data_frame;
+
+		err = ring_buf_put_claim(&nmea_buf, (uint8_t **)&data_frame,
+					 sizeof(struct nrf_modem_gnss_nmea_data_frame));
+		if (err < sizeof(struct nrf_modem_gnss_nmea_data_frame)) {
+			LOG_ERR("Failed to allocate enough memory for NMEA string (got %d bytes)",
+				err);
+			return;
+		}
+
+		err = nrf_modem_gnss_read(
+				data_frame->nmea_str,
+				sizeof(struct nrf_modem_gnss_nmea_data_frame),
+				NRF_MODEM_GNSS_DATA_NMEA);
+
+		LOG_DBG("gnss_event_handler: %s", data_frame->nmea_str);
+
+		(void)ring_buf_put_finish(&nmea_buf,
+					  sizeof(struct nrf_modem_gnss_nmea_data_frame));
+
+		if (err) {
+			LOG_WRN("Reading NMEA data from GNSS failed, error: %d", err);
+			return;
+		}
+       }
+
 	/* Write the event into a message queue, processing is done in a separate thread. */
 	err = k_msgq_put(&event_msgq, &event, K_NO_WAIT);
 	if (err) {
@@ -241,6 +279,28 @@ static void timeout_send(void)
 	gps_module_event->type = GPS_EVT_TIMEOUT;
 
 	EVENT_SUBMIT(gps_module_event);
+}
+
+static char *strnstr(const char *str1, size_t len, const char *str2)
+{
+	size_t len2 = strlen(str2);
+
+	if (len2 > len) {
+		return NULL;
+	}
+
+	for (int i = 0; i < (len - len2); ++i) {
+		if (memcmp(&str1[i], str2, len2) == 0) {
+			return (char *) &str1[i];
+		}
+	}
+
+	return NULL;
+}
+
+static bool nmea_is_type(char *const haystack, const char *needle)
+{
+	return strnstr(haystack, 8, needle) ? true : false;
 }
 
 /* GNSS event handler thread. */
@@ -293,22 +353,29 @@ static void gnss_event_thread_fn(void)
 		case NRF_MODEM_GNSS_EVT_FIX:
 			LOG_DBG("NRF_MODEM_GNSS_EVT_FIX");
 			break;
-		case NRF_MODEM_GNSS_EVT_NMEA:
-			/* Don't spam logs. */
-			if (IS_ENABLED(CONFIG_GPS_MODULE_NMEA) && got_fix) {
-				err = nrf_modem_gnss_read(
-						nmea_data.nmea_str,
-						sizeof(struct nrf_modem_gnss_nmea_data_frame),
-						NRF_MODEM_GNSS_DATA_NMEA);
-				if (err) {
-					LOG_WRN("Reading NMEA data from GNSS failed, error: %d",
-						err);
-					break;
-				}
+		case NRF_MODEM_GNSS_EVT_NMEA: {
+			struct nrf_modem_gnss_nmea_data_frame *data_frame;
 
-				data_send_nmea();
+			err = ring_buf_get_claim(&nmea_buf, (uint8_t **)&data_frame,
+				sizeof(struct nrf_modem_gnss_nmea_data_frame));
+			if (err < sizeof(struct nrf_modem_gnss_nmea_data_frame)) {
+				LOG_ERR("Failed to get full NEMA string (got %d bytes)", err);
+				break;
 			}
+
+			if (IS_ENABLED(CONFIG_GPS_MODULE_FORMAT_NMEA) && got_fix &&
+			    nmea_is_type(data_frame->nmea_str, "GGA")) {
+				data_send_nmea(data_frame->nmea_str, true);
+			}
+
+			if (IS_ENABLED(CONFIG_GPS_MODULE_NMEA_DEBUG)) {
+				data_send_nmea(data_frame->nmea_str, false);
+			}
+
+			(void)ring_buf_get_finish(&nmea_buf,
+				sizeof(struct nrf_modem_gnss_nmea_data_frame));
 			break;
+		}
 		case NRF_MODEM_GNSS_EVT_AGPS_REQ:
 			LOG_DBG("NRF_MODEM_GNSS_EVT_AGPS_REQ");
 			err = nrf_modem_gnss_read(&agps_data,
@@ -382,16 +449,22 @@ static void data_send_pvt(void)
 	EVENT_SUBMIT(gps_module_event);
 }
 
-static void data_send_nmea(void)
+static void data_send_nmea(char *nmea_str, bool is_fix)
 {
 	struct gps_module_event *gps_module_event = new_gps_module_event();
 
-	strncpy(gps_module_event->data.gps.nmea, nmea_data.nmea_str,
+	strncpy(gps_module_event->data.gps.nmea, nmea_str,
 		sizeof(gps_module_event->data.gps.nmea) - 1);
 
 	gps_module_event->data.gps.nmea[sizeof(gps_module_event->data.gps.nmea) - 1] = '\0';
+
+	if (is_fix) {
+		gps_module_event->type = GPS_EVT_DATA_READY;
+	} else {
+		gps_module_event->type = GPS_EVT_NMEA;
+	}
+
 	gps_module_event->data.gps.timestamp = k_uptime_get();
-	gps_module_event->type = GPS_EVT_DATA_READY;
 	gps_module_event->data.gps.format = GPS_MODULE_DATA_FORMAT_NMEA;
 	gps_module_event->data.gps.satellites_tracked =
 				set_satellites_tracked(pvt_data.sv, ARRAY_SIZE(pvt_data.sv));
@@ -427,6 +500,12 @@ static void print_pvt(void)
 static void search_start(void)
 {
 	int err;
+	int nmea_mask =
+		(IS_ENABLED(CONFIG_GPS_MODULE_NMEA_GGA) ? NRF_MODEM_GNSS_NMEA_GGA_MASK : 0) |
+		(IS_ENABLED(CONFIG_GPS_MODULE_NMEA_GLL) ? NRF_MODEM_GNSS_NMEA_GLL_MASK : 0) |
+		(IS_ENABLED(CONFIG_GPS_MODULE_NMEA_GSA) ? NRF_MODEM_GNSS_NMEA_GSA_MASK : 0) |
+		(IS_ENABLED(CONFIG_GPS_MODULE_NMEA_GSV) ? NRF_MODEM_GNSS_NMEA_GSV_MASK : 0) |
+		(IS_ENABLED(CONFIG_GPS_MODULE_NMEA_RMC) ? NRF_MODEM_GNSS_NMEA_RMC_MASK : 0);
 
 	/* When GNSS is used in single fix mode, it needs to be stopped before it can be
 	 * started again.
@@ -446,10 +525,10 @@ static void search_start(void)
 		return;
 	}
 
-	if (IS_ENABLED(CONFIG_GPS_MODULE_NMEA)) {
-		err = nrf_modem_gnss_nmea_mask_set(NRF_MODEM_GNSS_NMEA_GGA_MASK);
+	if (nmea_mask) {
+		err = nrf_modem_gnss_nmea_mask_set(nmea_mask);
 		if (err) {
-			LOG_ERR("Failed to set GNSS NMEA mask, error %d", err);
+			LOG_ERR("Failed to set GNSS NMEA GGA mask, error %d", err);
 			return;
 		}
 	}
