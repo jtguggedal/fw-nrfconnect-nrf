@@ -55,6 +55,12 @@ static const nrf_modem_init_params_t init_params = {
 #endif
 };
 
+__weak void nrf_modem_lib_on_init_done(void)
+{
+	/* Nothing to do. */
+}
+
+
 static int _nrf_modem_lib_init(const struct device *unused)
 {
 	if (!first_time_init) {
@@ -83,6 +89,10 @@ static int _nrf_modem_lib_init(const struct device *unused)
 	}
 	k_mutex_unlock(&slist_mutex);
 
+	if (init_ret == 0) {
+		nrf_modem_lib_on_init_done();
+	}
+
 	if (IS_ENABLED(CONFIG_NRF_MODEM_LIB_SYS_INIT)) {
 		/* nrf_modem_init() returns values from a different namespace
 		 * than Zephyr's. Make sure to return something in Zephyr's
@@ -94,7 +104,6 @@ static int _nrf_modem_lib_init(const struct device *unused)
 
 	return init_ret;
 }
-
 void nrf_modem_lib_shutdown_wait(void)
 {
 	struct shutdown_thread thread;

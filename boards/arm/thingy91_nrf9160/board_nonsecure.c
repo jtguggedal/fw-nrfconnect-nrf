@@ -19,16 +19,12 @@ LOG_MODULE_REGISTER(board_nonsecure, CONFIG_BOARD_LOG_LEVEL);
 #define AT_CMD_COEX0		"AT%%XCOEX0=1,1,1565,1586"
 #define AT_CMD_TRACE		"AT%%XMODEMTRACE=0"
 
+extern void nrf_modem_lib_on_init_done(void);
+
 static int thingy91_magpio_configure(void)
 {
 #if defined(CONFIG_NRF_MODEM_LIB) && defined(CONFIG_NET_SOCKETS_OFFLOAD)
 	int err;
-
-	if (!IS_ENABLED(CONFIG_NRF_MODEM_LIB_SYS_INIT)) {
-		LOG_INF("Modem library is not yet initialized, AT commands not sent");
-		LOG_INF("Configuration of MAGPIO and COEX0 is left to drivers");
-		return 0;
-	}
 
 	err = nrf_modem_lib_get_init_ret();
 	if (err < 0) {
@@ -64,23 +60,17 @@ static int thingy91_magpio_configure(void)
 		return -EIO;
 	}
 
-	LOG_DBG("MAGPIO successfully configured");
+	LOG_WRN("MAGPIO and COEX0 successfully configured");
 
 #endif
 	return 0;
 }
 
-static int thingy91_board_init(const struct device *dev)
+void nrf_modem_lib_on_init_done(void)
 {
-	int err;
+	int err = thingy91_magpio_configure();
 
-	err = thingy91_magpio_configure();
 	if (err) {
 		LOG_ERR("thingy91_magpio_configure failed with error: %d", err);
-		return err;
 	}
-
-	return 0;
 }
-
-SYS_INIT(thingy91_board_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
