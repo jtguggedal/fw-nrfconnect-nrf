@@ -19,9 +19,7 @@ It provides an abstraction of the following modules:
   * :ref:`lte_lc_readme`
   * :ref:`lib_download_client`
   * :ref:`modem_key_mgmt`
-  * :ref:`at_cmd_readme`
   * :ref:`at_cmd_parser_readme`
-  * :ref:`at_notif_readme`
   * :ref:`sms_readme`
   * :ref:`pdn_readme`
 

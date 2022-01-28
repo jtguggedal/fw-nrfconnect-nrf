@@ -112,8 +112,7 @@ This sample uses the following |NCS| libraries:
 
 * :ref:`lib_at_host` which includes:
 
-   * :ref:`at_cmd_readme`
-   * :ref:`at_notif_readme`
+   * :ref:`at_monitor`
 
 It uses the following `sdk-nrfxlib`_ library:
 

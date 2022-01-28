@@ -166,10 +166,10 @@ manifest:
       remote: nordicsemi
       revision: 1c2656daa87ebf4cd3c45ee8eafa336260d589bc
       path: modules/lib/cddl-gen
-    - name: memfault-firmware-sdk
-      path: modules/lib/memfault-firmware-sdk
-      revision: 0.27.3
-      remote: memfault
+#    - name: memfault-firmware-sdk
+#      path: modules/lib/memfault-firmware-sdk
+#      revision: 0.27.3
+#      remote: memfault
 
   # West-related configuration for the nrf repository.
   self:
