@@ -1,0 +1,41 @@
+CONFIG_SOC_SERIES_NRF91X=y
+CONFIG_SOC_NRF9161_SICA=y
+CONFIG_BOARD_THINGY91X_NRF9161_NS=y
+
+# Enable MPU
+CONFIG_ARM_MPU=y
+
+# Enable TrustZone-M
+CONFIG_ARM_TRUSTZONE_M=y
+
+# This Board implies building Non-Secure firmware
+CONFIG_TRUSTED_EXECUTION_NONSECURE=y
+
+# Enable PINCTRL
+CONFIG_PINCTRL=y
+
+# Enable GPIO
+CONFIG_GPIO=y
+
+# Enable UARTE
+CONFIG_SERIAL=y
+
+# Enable console
+CONFIG_CONSOLE=y
+CONFIG_UART_CONSOLE=y
+
+# Enable I2C
+CONFIG_I2C=y
+
+# Enable SPI
+CONFIG_SPI=y
+
+# Enable Flash
+CONFIG_FLASH=y
+CONFIG_SPI_NOR=y
+CONFIG_SPI_NOR_SFDP_DEVICETREE=y
+
+# Disable entropy driver, as it's not yet implemented for nRF9161
+CONFIG_ENTROPY_NRF5_RNG=n
+
+CONFIG_BOOTLOADER_MCUBOOT=y

@@ -1,0 +1,15 @@
+# Thingy:91 nRF9161 board configuration
+#
+# Copyright (c) 2019 Nordic Semiconductor ASA
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+
+if SOC_NRF9161_SICA
+
+config BOARD_THINGY91X_NRF9161
+	bool "nRF9161 THINGY91X"
+
+config BOARD_THINGY91X_NRF9161_NS
+	bool "nRF9161 THINGY91X non-secure"
+
+endif # SOC_NRF9161_SICA

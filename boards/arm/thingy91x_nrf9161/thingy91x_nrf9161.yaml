@@ -1,0 +1,12 @@
+identifier: thingy91x_nrf9161
+name: Thingy91-NRF9161
+type: mcu
+arch: arm
+toolchain:
+  - gnuarmemb
+  - zephyr
+ram: 64
+flash: 256
+supported:
+  - gpio
+  - i2c

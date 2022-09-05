@@ -136,6 +136,7 @@ config ADD_MCUBOOT_MEDIATE_SIM_FLASH_DTS
 config MCUBOOT_USE_ALL_AVAILABLE_RAM
 	bool "Allow MCUBoot to use all available RAM (security implications)"
 	depends on ARM_TRUSTZONE_M
+	default y if BOARD_THINGY91X_NRF9161_NS || BOARD_THINGY91X_NRF9161
 	default y if BOARD_THINGY53_NRF5340_CPUAPP_NS || BOARD_THINGY53_NRF5340_CPUAPP
 	help
 	  By default MCUBoot uses only the secure RAM partition. Enabling this
