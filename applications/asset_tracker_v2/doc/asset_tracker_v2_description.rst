@@ -162,19 +162,19 @@ After programming the application and all the prerequisites to your development 
 #. Observe in the terminal window that application boots as shown in the following output::
 
       *** Booting Zephyr OS build v2.4.0-ncs1-2616-g3420cde0e37b  ***
-      <inf> app_event_manager: APP_EVT_START
+      <inf> app_event_manager: APP_MSG_START
 
 #. Observe in the terminal window that LTE connection is established, indicated by the following output::
 
-     <inf> app_event_manager: MODEM_EVT_LTE_CONNECTING
+     <inf> app_event_manager: MODEM_MSG_LTE_CONNECTING
      ...
-     <inf> app_event_manager: MODEM_EVT_LTE_CONNECTED
+     <inf> app_event_manager: MODEM_MSG_LTE_CONNECTED
 
 #. Observe that the device establishes connection to the cloud::
 
-    <inf> app_event_manager: CLOUD_EVT_CONNECTING
+    <inf> app_event_manager: CLOUD_MSG_CONNECTING
     ...
-    <inf> app_event_manager: CLOUD_EVT_CONNECTED
+    <inf> app_event_manager: CLOUD_MSG_CONNECTED
 
 #. Observe that data is sampled periodically and sent to the cloud::
 

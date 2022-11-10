@@ -28,22 +28,22 @@ extern "C" {
 /** @brief Enum containing callback events from library. */
 enum ext_sensor_evt_type {
 	/** Event that is sent if acceleration is detected */
-	EXT_SENSOR_EVT_ACCELEROMETER_ACT_TRIGGER,
+	EXT_SENSOR_MSG_ACCELEROMETER_ACT_TRIGGER,
 	/** Event that is sent if inactivity is detected */
-	EXT_SENSOR_EVT_ACCELEROMETER_INACT_TRIGGER,
+	EXT_SENSOR_MSG_ACCELEROMETER_INACT_TRIGGER,
 	/** ADXL372 high-G accelerometer */
-	EXT_SENSOR_EVT_ACCELEROMETER_IMPACT_TRIGGER,
+	EXT_SENSOR_MSG_ACCELEROMETER_IMPACT_TRIGGER,
 
 	/** Event propagated when an error has occurred with any of the accelerometers. */
-	EXT_SENSOR_EVT_ACCELEROMETER_ERROR,
+	EXT_SENSOR_MSG_ACCELEROMETER_ERROR,
 	/** Event propagated when an error has occurred with the temperature sensor. */
-	EXT_SENSOR_EVT_TEMPERATURE_ERROR,
+	EXT_SENSOR_MSG_TEMPERATURE_ERROR,
 	/** Event propagated when an error has occurred with the humidity sensor. */
-	EXT_SENSOR_EVT_HUMIDITY_ERROR,
+	EXT_SENSOR_MSG_HUMIDITY_ERROR,
 	/** Event propagated when an error has occurred with the pressure sensor. */
-	EXT_SENSOR_EVT_PRESSURE_ERROR,
+	EXT_SENSOR_MSG_PRESSURE_ERROR,
 	/** Event propagated when an error has occurred with the Bosch BSEC library. */
-	EXT_SENSOR_EVT_BME680_BSEC_ERROR
+	EXT_SENSOR_MSG_BME680_BSEC_ERROR
 };
 
 /** @brief Structure containing external sensor data. */

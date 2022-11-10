@@ -1,0 +1,20 @@
+#
+# Copyright (c) 2021 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+module = MODULE_COMMON
+module-str = Common module API
+source "subsys/logging/Kconfig.template.log_config"
+
+rsource "app/Kconfig"
+rsource "cloud/Kconfig"
+rsource "data/Kconfig"
+rsource "debug/Kconfig"
+rsource "location/Kconfig"
+rsource "led/Kconfig"
+rsource "modem/Kconfig"
+rsource "sensor/Kconfig"
+rsource "ui/Kconfig"
+rsource "util/Kconfig"

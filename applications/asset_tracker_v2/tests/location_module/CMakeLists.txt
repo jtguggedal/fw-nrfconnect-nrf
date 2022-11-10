@@ -13,7 +13,7 @@ project(location_module_test)
 test_runner_generate(src/location_module_test.c)
 
 # create mock
-cmock_handle(../../src/modules/modules_common.h )
+cmock_handle(../../src/modules/module_common.h )
 cmock_handle(${ZEPHYR_BASE}/../nrf/include/app_event_manager.h )
 cmock_handle(${ZEPHYR_BASE}/../nrf/subsys/app_event_manager/app_event_manager_priv.h )
 cmock_handle(${ZEPHYR_BASE}/../nrf/include/date_time.h )

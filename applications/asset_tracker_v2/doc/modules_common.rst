@@ -18,9 +18,9 @@ The API supports the following functionalities:
 API documentation
 *****************
 
-| Header file: :file:`asset_tracker_v2/src/modules/modules_common.h`
-| Source files: :file:`asset_tracker_v2/src/modules_common.c`
+| Header file: :file:`asset_tracker_v2/src/modules/module_common.h`
+| Source files: :file:`asset_tracker_v2/src/module_common.c`
 
-.. doxygengroup:: modules_common
+.. doxygengroup:: module_common
    :project: nrf
    :members:

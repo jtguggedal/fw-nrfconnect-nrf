@@ -1,0 +1,93 @@
+#
+# Copyright (c) 2021 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+menuconfig MODEM_MODULE
+	bool "Modem module"
+	select LTE_LINK_CONTROL
+	select PDN
+	select PDN_ESM_STRERROR
+	select MODEM_INFO
+	default y
+
+if MODEM_MODULE
+
+config MODEM_SEND_ALL_SAMPLED_DATA
+	bool "Include all sampled data upon a sample request"
+	default y if LWM2M_INTEGRATION
+	help
+	  If this option is disabled the modem module will only include data values that have
+	  changed from the last sample request. Currently this option is only supported for
+	  dynamic modem data. This is to save costs related to data transfers and to lower the
+	  device's overall current consumption due to less CPU and radio-activity.
+
+config MODEM_THREAD_STACK_SIZE
+	int "Modem module thread stack size"
+	default 4096
+
+config MODEM_AUTO_REQUEST_POWER_SAVING_FEATURES
+	bool "Auto request power saving features"
+	default y
+
+config MODEM_DYNAMIC_DATA_CONVERT_RSRP_TO_DBM
+	bool "Convert RSRP values to dBm for dynamic modem data"
+	default y
+	help
+	  If this option is enabled, RSRP values are converted to dBm before being
+	  sent out by the module with the MODEM_MSG_MODEM_DYNAMIC_DATA_READY event.
+
+config MODEM_NEIGHBOR_CELLS_DATA_CONVERT_RSRP_TO_DBM
+	bool "Convert RSRP values to dBm for neighbor cell measurements"
+	default y if AWS_IOT || AZURE_IOT_HUB
+	help
+	  If this option is enabled, RSRP values are converted to dBm before being
+	  sent out by the module with the MODEM_MSG_NEIGHBOR_CELLS_DATA_READY event.
+	  Don't convert RSRP to dBm when building for nRF Cloud, this is handled during encoding
+	  using the nRF Cloud cellular positioning library.
+
+config MODEM_NEIGHBOR_CELLS_DATA_CONVERT_RSRQ_TO_DB
+	bool "Convert RSRQ values to dB for neighbor cell measurements"
+	default y if AWS_IOT || AZURE_IOT_HUB
+	help
+	  If this option is enabled, RSRQ values are converted to dB before being
+	  sent out by the module with the MODEM_MSG_NEIGHBOR_CELLS_DATA_READY event.
+	  Don't convert RSRQ to dB when building for nRF Cloud, this is handled during encoding
+	  using the nRF Cloud cellular positioning library.
+
+choice MODEM_NEIGHBOR_SEARCH_TYPE
+	prompt "Type of search for neighbor cell measurements"
+	default MODEM_NEIGHBOR_SEARCH_TYPE_DEFAULT
+	help
+	  This setting specifies how much effort the modem will put into neighbor cell
+	  measurements. Depending on the modem's state, the extended options might take longer
+	  than the default one.
+
+config MODEM_NEIGHBOR_SEARCH_TYPE_DEFAULT
+	bool "Modem searches the registered network based on previous cell history"
+
+config MODEM_NEIGHBOR_SEARCH_TYPE_EXTENDED_LIGHT
+	bool "Modem additionally performs a light search with all networks"
+
+config MODEM_NEIGHBOR_SEARCH_TYPE_EXTENDED_COMPLETE
+	bool "Modem additionally performs a complete search with all networks"
+
+endchoice # MODEM_NEIGHBOR_SEARCH_TYPE
+
+endif # MODEM_MODULE
+
+# Since this configuration is used in the module's event header file, it cannot be guarded
+# by the CONFIG_MODEM_MODULE option. This file can be included in modules even if the source file
+# of the module it self is not included.
+
+config MODEM_APN_LEN_MAX
+	int "APN maximum length"
+	default 30
+	help
+	  Maximum size of APN (Access Point Name) included in MODEM_MSG_MODEM_DYNAMIC_DATA_READY
+	  events.
+
+module = MODEM_MODULE
+module-str = Modem module
+source "subsys/logging/Kconfig.template.log_config"
