@@ -30,7 +30,7 @@ cmock_handle(${NRF_SDK_DIR}/include/app_event_manager.h)
 cmock_handle(${NRF_SDK_DIR}/subsys/app_event_manager/app_event_manager_priv.h )
 
 # Create mock for Asset Tracker v2 application source files
-cmock_handle(${ASSET_TRACKER_V2_DIR}/src/modules/modules_common.h)
+cmock_handle(${ASSET_TRACKER_V2_DIR}/src/modules/module_common.h)
 cmock_handle(${ASSET_TRACKER_V2_DIR}/src/watchdog/watchdog_app.h)
 
 # Add debug module (Unit Under Test)

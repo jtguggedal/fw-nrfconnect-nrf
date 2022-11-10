@@ -17,7 +17,7 @@ This section documents the various features implemented by the module.
 Button presses
 ==============
 
-When a button is pressed on a supported board, the UI module notifies the rest of the application with the :c:enum:`UI_EVT_BUTTON_DATA_READY` event that contains information about the button press.
+When a button is pressed on a supported board, the UI module notifies the rest of the application with the :c:enum:`UI_MSG_BUTTON_DATA_READY` event that contains information about the button press.
 The buttons used by the module and their functionality are listed in the following table:
 
 .. _button_behavior:

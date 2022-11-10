@@ -25,10 +25,10 @@ This then expands an internal list in the :ref:`api_modules_common`.
 
 The typical chain of events that completes the shutdown sequence is as follows:
 
-1. A module detects an irrecoverable error and sends an event carrying the associated error code. This event name is typically the module name suffixed with ``EVT_ERROR``. For example, :c:enum:`CLOUD_EVT_ERROR`.
+1. A module detects an irrecoverable error and sends an event carrying the associated error code. This event name is typically the module name suffixed with ``EVT_ERROR``. For example, :c:enum:`CLOUD_MSG_ERROR`.
 #. The utility module receives the error event and starts a reboot timer that times out after the duration specified by the :ref:`CONFIG_REBOOT_TIMEOUT <CONFIG_REBOOT_TIMEOUT>` option. When this timer expires, the application reboots in any case.
-#. The utility module sends out a shutdown request, :c:enum:`UTIL_EVT_SHUTDOWN_REQUEST`, that is handled individually by each module in the system that supports shutdown.
-#. When each module has handled the shutdown request, it acknowledges the shutdown by sending an event suffixed with ``EVT_SHUTDOWN_READY``. For example, :c:enum:`CLOUD_EVT_SHUTDOWN_READY`.
+#. The utility module sends out a shutdown request, :c:enum:`UTIL_MSG_SHUTDOWN_REQUEST`, that is handled individually by each module in the system that supports shutdown.
+#. When each module has handled the shutdown request, it acknowledges the shutdown by sending an event suffixed with ``EVT_SHUTDOWN_READY``. For example, :c:enum:`CLOUD_MSG_SHUTDOWN_READY`.
 #. When the utility module receives a shutdown acknowledgment, for each incoming shutdown acknowledgment, the aforementioned list in the :ref:`api_modules_common` is checked using :c:func:`modules_shutdown_register`. When all the modules in the list have acknowledged the request, the utility module reboots the application at a much earlier point than the time set initially by the reboot timer.
 
 Watchdog

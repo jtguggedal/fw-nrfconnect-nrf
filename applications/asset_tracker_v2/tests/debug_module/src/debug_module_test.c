@@ -88,9 +88,9 @@ static void validate_debug_data_ready_evt(struct app_event_header *aeh, int no_o
 {
 	struct debug_module_event *event = cast_debug_module_event(aeh);
 
-	TEST_ASSERT_EQUAL(DEBUG_EVT_MEMFAULT_DATA_READY, event->type);
+	TEST_ASSERT_EQUAL(DEBUG_MSG_MEMFAULT_DATA_READY, event->type);
 
-	/* Free payload received in the DEBUG_EVT_MEMFAULT_DATA_READY event. */
+	/* Free payload received in the DEBUG_MSG_MEMFAULT_DATA_READY event. */
 	k_free(event->data.memfault.buf);
 }
 
@@ -110,7 +110,7 @@ void setup_debug_module_in_init_state(void)
 	__cmock_app_event_manager_free_ExpectAnyArgs();
 	struct app_module_event *app_module_event = new_app_module_event();
 
-	app_module_event->type = APP_EVT_START;
+	app_module_event->type = APP_MSG_START;
 
 	__cmock_watchdog_register_handler_ExpectAnyArgs();
 	__cmock_watchdog_register_handler_AddCallback(&latch_watchdog_callback);
@@ -180,7 +180,7 @@ void test_memfault_trigger_metric_sampling_on_location_timeout(void)
 }
 
 /* Test that the debug module is able to submit Memfault data externally through events
- * of type DEBUG_EVT_MEMFAULT_DATA_READY carrying chunks of data.
+ * of type DEBUG_MSG_MEMFAULT_DATA_READY carrying chunks of data.
  */
 void test_memfault_trigger_data_send(void)
 {
@@ -200,7 +200,7 @@ void test_memfault_trigger_data_send(void)
 	__cmock_app_event_manager_free_ExpectAnyArgs();
 	struct data_module_event *data_module_event = new_data_module_event();
 
-	data_module_event->type = DATA_EVT_DATA_SEND;
+	data_module_event->type = DATA_MSG_DATA_SEND;
 
 	__cmock_app_event_manager_alloc_IgnoreAndReturn(&debug_module_event_memory);
 	TEST_ASSERT_EQUAL(0, DEBUG_MODULE_EVT_HANDLER(
@@ -213,7 +213,7 @@ void test_memfault_trigger_data_send(void)
 	k_sleep(K_SECONDS(1));
 }
 
-/* Test that no Memfault SDK specific APIs are called on GNSS module events
+/* Test that no Memfault SDK specific APIs are called on GNSS module messagess
  * that should not be handled.
  */
 void test_memfault_unhandled_event(void)

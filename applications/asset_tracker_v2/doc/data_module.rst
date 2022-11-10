@@ -21,12 +21,12 @@ This section documents the features implemented by the module.
 Requested data types
 ====================
 
-The data module maintains a list of requested data types that is updated every time a sample request of type :c:enum:`APP_EVT_DATA_GET` is sent from the :ref:`asset_tracker_v2_app_module`.
-When all the data types present in the list is received by the module, the event :c:enum:`DATA_EVT_DATA_READY` is sent out.
+The data module maintains a list of requested data types that is updated every time a sample request of type :c:enum:`APP_MSG_DATA_GET` is sent from the :ref:`asset_tracker_v2_app_module`.
+When all the data types present in the list is received by the module, the event :c:enum:`DATA_MSG_DATA_READY` is sent out.
 This event signifies that all data has been gathered for a sample request.
 The available data can now be encoded and sent to the cloud.
-The :c:enum:`APP_EVT_DATA_GET` event also carries a sample timeout.
-This timeout is used by the data module to trigger a :c:enum:`DATA_EVT_DATA_READY` event, even if not all types in the requested list have been received.
+The :c:enum:`APP_MSG_DATA_GET` event also carries a sample timeout.
+This timeout is used by the data module to trigger a :c:enum:`DATA_MSG_DATA_READY` event, even if not all types in the requested list have been received.
 This acts as a fail-safe in case some modules do not manage to sample the requested data in time.
 For example, it is not always possible to acquire a GNSS fix.
 
@@ -38,9 +38,9 @@ For example, it is not always possible to acquire a GNSS fix.
 Device configuration
 ====================
 
-When the application boots, the data module distributes the current values of the applications :ref:`Real-time configurations <real_time_configs>` to the rest of the application with the :c:enum:`DATA_EVT_CONFIG_INIT` event.
+When the application boots, the data module distributes the current values of the applications :ref:`Real-time configurations <real_time_configs>` to the rest of the application with the :c:enum:`DATA_MSG_CONFIG_INIT` event.
 These value are persisted in flash between reboots using the :ref:`settings_api` and updated each time the application receives a new configuration update.
-If a new configuration update is received from the cloud, the data module distributes the new configuration values using the :c:enum:`DATA_EVT_CONFIG_READY` event.
+If a new configuration update is received from the cloud, the data module distributes the new configuration values using the :c:enum:`DATA_MSG_CONFIG_READY` event.
 You can alter the default values of the :ref:`Real-time configurations <real_time_configs>` compile time using the options listed in the :ref:`Default device configuration options <default_config_values>`.
 
 Connection evaluation

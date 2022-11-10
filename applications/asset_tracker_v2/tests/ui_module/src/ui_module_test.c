@@ -12,14 +12,6 @@
 #include <cmock_app_event_manager.h>
 #include <cmock_dk_buttons_and_leds.h>
 
-#include "events/app_module_event.h"
-#include "events/data_module_event.h"
-#include "events/ui_module_event.h"
-#include "events/location_module_event.h"
-#include "events/modem_module_event.h"
-#include "events/cloud_module_event.h"
-#include "events/util_module_event.h"
-
 #include "src/vars_internal.h"
 
 extern struct event_listener __event_listener_ui_module;
@@ -37,7 +29,7 @@ static struct location_module_event location_module_event_memory;
 
 #define UI_MODULE_EVT_HANDLER(aeh) __event_listener_ui_module.notification(aeh)
 
-/* Macro used to submit module events of a specific type to the UI module. */
+/* Macro used to submit module messagess of a specific type to the UI module. */
 #define TEST_SEND_EVENT(_mod, _type, _event)							\
 	__cmock_app_event_manager_alloc_ExpectAnyArgsAndReturn(&_mod##_module_event_memory);	\
 	__cmock_app_event_manager_free_ExpectAnyArgs();						\
@@ -109,7 +101,7 @@ static void validate_ui_evt(struct app_event_header *aeh, int no_of_calls)
 {
 	struct ui_module_event *event = cast_ui_module_event(aeh);
 
-	TEST_ASSERT_EQUAL(UI_EVT_SHUTDOWN_READY, event->type);
+	TEST_ASSERT_EQUAL(UI_MSG_SHUTDOWN_READY, event->type);
 }
 
 /* Function used to verify the internal state of the UI module. */
@@ -168,7 +160,7 @@ static void verify_publication(bool active_mode)
 	}
 
 	/* Send cloud publication event. */
-	TEST_SEND_EVENT(data, DATA_EVT_DATA_SEND, data_module_event);
+	TEST_SEND_EVENT(data, DATA_MSG_DATA_SEND, data_module_event);
 	TEST_ASSERT_TRUE(list_node_verify_next(LED_STATE_CLOUD_PUBLISHING, 5));
 	TEST_ASSERT_TRUE(list_node_verify_next(led_state_mode_verify, 5));
 	TEST_ASSERT_TRUE(list_node_verify_next(LED_STATE_TURN_OFF, -1));
@@ -179,7 +171,7 @@ static void verify_publication(bool active_mode)
 	state_verify(STATE_RUNNING, sub_state_verify, SUB_SUB_STATE_LOCATION_ACTIVE);
 
 	/* Send cloud publication event. */
-	TEST_SEND_EVENT(data, DATA_EVT_DATA_SEND_BATCH, data_module_event);
+	TEST_SEND_EVENT(data, DATA_MSG_DATA_SEND_BATCH, data_module_event);
 	TEST_ASSERT_TRUE(list_node_verify_next(LED_STATE_CLOUD_PUBLISHING, 5));
 	TEST_ASSERT_TRUE(list_node_verify_next(led_state_mode_verify, 5));
 	TEST_ASSERT_TRUE(list_node_verify_next(LED_STATE_LOCATION_SEARCHING, -1));
@@ -189,7 +181,7 @@ static void verify_publication(bool active_mode)
 	state_verify(STATE_RUNNING, sub_state_verify, SUB_SUB_STATE_LOCATION_INACTIVE);
 
 	/* Send cloud publication event. */
-	TEST_SEND_EVENT(data, DATA_EVT_UI_DATA_SEND, data_module_event);
+	TEST_SEND_EVENT(data, DATA_MSG_UI_DATA_SEND, data_module_event);
 	TEST_ASSERT_TRUE(list_node_verify_next(LED_STATE_CLOUD_PUBLISHING, 5));
 	TEST_ASSERT_TRUE(list_node_verify_next(led_state_mode_verify, 5));
 	TEST_ASSERT_TRUE(list_node_verify_next(LED_STATE_TURN_OFF, -1));
@@ -313,7 +305,7 @@ void test_state_shutdown_fota(void)
 
 	struct util_module_event *util_module_event = new_util_module_event();
 
-	util_module_event->type = UTIL_EVT_SHUTDOWN_REQUEST;
+	util_module_event->type = UTIL_MSG_SHUTDOWN_REQUEST;
 	util_module_event->reason = REASON_FOTA_UPDATE;
 
 	TEST_ASSERT_FALSE(UI_MODULE_EVT_HANDLER(
@@ -343,7 +335,7 @@ void test_state_shutdown_error(void)
 
 	struct util_module_event *util_module_event = new_util_module_event();
 
-	util_module_event->type = UTIL_EVT_SHUTDOWN_REQUEST;
+	util_module_event->type = UTIL_MSG_SHUTDOWN_REQUEST;
 	util_module_event->reason = REASON_GENERIC;
 
 	TEST_ASSERT_FALSE(UI_MODULE_EVT_HANDLER(
@@ -394,7 +386,7 @@ void test_mode_transition(void)
 
 	/* Set module in SUB_STATE_PASSIVE */
 	data_module_event = new_data_module_event();
-	data_module_event->type = DATA_EVT_CONFIG_READY;
+	data_module_event->type = DATA_MSG_CONFIG_READY;
 	data_module_event->data.cfg.active_mode = false;
 
 	TEST_ASSERT_FALSE(UI_MODULE_EVT_HANDLER(
@@ -407,7 +399,7 @@ void test_mode_transition(void)
 
 	/* Set module in SUB_STATE_ACTIVE */
 	data_module_event = new_data_module_event();
-	data_module_event->type = DATA_EVT_CONFIG_READY;
+	data_module_event->type = DATA_MSG_CONFIG_READY;
 	data_module_event->data.cfg.active_mode = true;
 
 	TEST_ASSERT_FALSE(UI_MODULE_EVT_HANDLER(

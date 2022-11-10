@@ -16,7 +16,7 @@ test_runner_generate(src/ui_module_test.c)
 set(ASSET_TRACKER_V2_DIR ../..)
 
 # Create mocks
-cmock_handle(${ASSET_TRACKER_V2_DIR}/src/modules/modules_common.h)
+cmock_handle(${ASSET_TRACKER_V2_DIR}/src/modules/module_common.h)
 cmock_handle(${NRF_DIR}/include/app_event_manager.h)
 cmock_handle(${NRF_DIR}/subsys/app_event_manager/app_event_manager_priv.h)
 cmock_handle(${NRF_DIR}/include/dk_buttons_and_leds.h)

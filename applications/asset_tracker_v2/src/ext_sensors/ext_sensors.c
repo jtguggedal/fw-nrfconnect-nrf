@@ -118,10 +118,10 @@ static void accelerometer_trigger_handler(const struct device *dev,
 		evt.value_array[2] = sensor_value_to_double(&data[2]);
 
 		if (trig->type == SENSOR_TRIG_MOTION) {
-			evt.type = EXT_SENSOR_EVT_ACCELEROMETER_ACT_TRIGGER;
+			evt.type = EXT_SENSOR_MSG_ACCELEROMETER_ACT_TRIGGER;
 			LOG_DBG("Activity detected");
 		} else {
-			evt.type = EXT_SENSOR_EVT_ACCELEROMETER_INACT_TRIGGER;
+			evt.type = EXT_SENSOR_MSG_ACCELEROMETER_INACT_TRIGGER;
 			LOG_DBG("Inactivity detected");
 		}
 		evt_handler(&evt);
@@ -160,7 +160,7 @@ static void impact_trigger_handler(const struct device *dev,
 		LOG_DBG("Detected impact of %6.2f g\n", evt.value);
 
 		if (evt.value > 0.0) {
-			evt.type = EXT_SENSOR_EVT_ACCELEROMETER_IMPACT_TRIGGER;
+			evt.type = EXT_SENSOR_MSG_ACCELEROMETER_IMPACT_TRIGGER;
 			evt_handler(&evt);
 		}
 		break;
@@ -186,39 +186,39 @@ int ext_sensors_init(ext_sensor_handler_t handler)
 
 	if (err) {
 		LOG_ERR("ext_sensors_bsec_init, error: %d", err);
-		evt.type = EXT_SENSOR_EVT_BME680_BSEC_ERROR;
+		evt.type = EXT_SENSOR_MSG_BME680_BSEC_ERROR;
 		evt_handler(&evt);
 	}
 #else
 	if (!device_is_ready(temp_sensor.dev)) {
 		LOG_ERR("Temperature sensor device is not ready");
-		evt.type = EXT_SENSOR_EVT_TEMPERATURE_ERROR;
+		evt.type = EXT_SENSOR_MSG_TEMPERATURE_ERROR;
 		evt_handler(&evt);
 	}
 
 	if (!device_is_ready(humid_sensor.dev)) {
 		LOG_ERR("Humidity sensor device is not ready");
-		evt.type = EXT_SENSOR_EVT_HUMIDITY_ERROR;
+		evt.type = EXT_SENSOR_MSG_HUMIDITY_ERROR;
 		evt_handler(&evt);
 	}
 
 	if (!device_is_ready(press_sensor.dev)) {
 		LOG_ERR("Pressure sensor device is not ready");
-		evt.type = EXT_SENSOR_EVT_PRESSURE_ERROR;
+		evt.type = EXT_SENSOR_MSG_PRESSURE_ERROR;
 		evt_handler(&evt);
 	}
 #endif /* if defined(CONFIG_EXTERNAL_SENSORS_BME680_BSEC) */
 
 	if (!device_is_ready(accel_sensor_lp.dev)) {
 		LOG_ERR("Low-power accelerometer device is not ready");
-		evt.type = EXT_SENSOR_EVT_ACCELEROMETER_ERROR;
+		evt.type = EXT_SENSOR_MSG_ACCELEROMETER_ERROR;
 		evt_handler(&evt);
 	}
 
 #if defined(CONFIG_EXTERNAL_SENSORS_IMPACT_DETECTION)
 	if (!device_is_ready(accel_sensor_hg.dev)) {
 		LOG_ERR("High-G accelerometer device is not ready");
-		evt.type = EXT_SENSOR_EVT_ACCELEROMETER_ERROR;
+		evt.type = EXT_SENSOR_MSG_ACCELEROMETER_ERROR;
 		evt_handler(&evt);
 	} else {
 		struct sensor_trigger trig = {
@@ -252,7 +252,7 @@ int ext_sensors_temperature_get(double *ext_temp)
 	if (err) {
 		LOG_ERR("Failed to fetch data from %s, error: %d",
 			temp_sensor.dev->name, err);
-		evt.type = EXT_SENSOR_EVT_TEMPERATURE_ERROR;
+		evt.type = EXT_SENSOR_MSG_TEMPERATURE_ERROR;
 		evt_handler(&evt);
 		return -ENODATA;
 	}
@@ -261,7 +261,7 @@ int ext_sensors_temperature_get(double *ext_temp)
 	if (err) {
 		LOG_ERR("Failed to fetch data from %s, error: %d",
 			temp_sensor.dev->name, err);
-		evt.type = EXT_SENSOR_EVT_TEMPERATURE_ERROR;
+		evt.type = EXT_SENSOR_MSG_TEMPERATURE_ERROR;
 		evt_handler(&evt);
 		return -ENODATA;
 	}
@@ -287,7 +287,7 @@ int ext_sensors_humidity_get(double *ext_hum)
 	if (err) {
 		LOG_ERR("Failed to fetch data from %s, error: %d",
 			humid_sensor.dev->name, err);
-		evt.type = EXT_SENSOR_EVT_HUMIDITY_ERROR;
+		evt.type = EXT_SENSOR_MSG_HUMIDITY_ERROR;
 		evt_handler(&evt);
 		return -ENODATA;
 	}
@@ -296,7 +296,7 @@ int ext_sensors_humidity_get(double *ext_hum)
 	if (err) {
 		LOG_ERR("Failed to fetch data from %s, error: %d",
 			humid_sensor.dev->name, err);
-		evt.type = EXT_SENSOR_EVT_HUMIDITY_ERROR;
+		evt.type = EXT_SENSOR_MSG_HUMIDITY_ERROR;
 		evt_handler(&evt);
 		return -ENODATA;
 	}
@@ -322,7 +322,7 @@ int ext_sensors_pressure_get(double *ext_press)
 	if (err) {
 		LOG_ERR("Failed to fetch data from %s, error: %d",
 			press_sensor.dev->name, err);
-		evt.type = EXT_SENSOR_EVT_PRESSURE_ERROR;
+		evt.type = EXT_SENSOR_MSG_PRESSURE_ERROR;
 		evt_handler(&evt);
 		return -ENODATA;
 	}
@@ -331,7 +331,7 @@ int ext_sensors_pressure_get(double *ext_press)
 	if (err) {
 		LOG_ERR("Failed to fetch data from %s, error: %d",
 			press_sensor.dev->name, err);
-		evt.type = EXT_SENSOR_EVT_PRESSURE_ERROR;
+		evt.type = EXT_SENSOR_MSG_PRESSURE_ERROR;
 		evt_handler(&evt);
 		return -ENODATA;
 	}
@@ -393,7 +393,7 @@ int ext_sensors_accelerometer_threshold_set(double threshold, bool upper)
 		LOG_ERR("Failed to set accelerometer threshold value");
 		LOG_ERR("Device: %s, error: %d",
 			accel_sensor_lp.dev->name, err);
-		evt.type = EXT_SENSOR_EVT_ACCELEROMETER_ERROR;
+		evt.type = EXT_SENSOR_MSG_ACCELEROMETER_ERROR;
 		evt_handler(&evt);
 		return err;
 	}
@@ -426,7 +426,7 @@ int ext_sensors_inactivity_timeout_set(double inact_time)
 	if (err) {
 		LOG_ERR("Failed to set accelerometer inactivity timeout value");
 		LOG_ERR("Device: %s, error: %d", accel_sensor_lp.dev->name, err);
-		evt.type = EXT_SENSOR_EVT_ACCELEROMETER_ERROR;
+		evt.type = EXT_SENSOR_MSG_ACCELEROMETER_ERROR;
 		evt_handler(&evt);
 		return err;
 	}
@@ -457,7 +457,7 @@ int ext_sensors_accelerometer_trigger_callback_set(bool enable)
 error:
 	LOG_ERR("Could not set trigger for device %s, error: %d",
 		accel_sensor_lp.dev->name, err);
-	evt.type = EXT_SENSOR_EVT_ACCELEROMETER_ERROR;
+	evt.type = EXT_SENSOR_MSG_ACCELEROMETER_ERROR;
 	evt_handler(&evt);
 	return err;
 }

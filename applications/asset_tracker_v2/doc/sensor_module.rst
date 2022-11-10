@@ -41,12 +41,12 @@ The module controls and collects data from the sensors by interacting with their
 Data sampling
 =============
 
-When the module receives an :c:enum:`APP_EVT_DATA_GET` event and the :c:enum:`APP_DATA_ENVIRONMENTAL` type is present in the ``app_data`` list carried in the event, it will sample data.
-When data sampling has been carried out, the :c:enum:`SENSOR_EVT_ENVIRONMENTAL_DATA_READY` event is sent from the module with the sampled environmental sensor values.
+When the module receives an :c:enum:`APP_MSG_DATA_GET` event and the :c:enum:`APP_DATA_ENVIRONMENTAL` type is present in the ``app_data`` list carried in the event, it will sample data.
+When data sampling has been carried out, the :c:enum:`SENSOR_MSG_ENVIRONMENTAL_DATA_READY` event is sent from the module with the sampled environmental sensor values.
 
 .. note::
    The nRF9160 DK does not have any external sensors.
-   If the sensor module is queried for sensor data when building for the DK, the event :c:enum:`SENSOR_EVT_ENVIRONMENTAL_NOT_SUPPORTED` is sent out by the module
+   If the sensor module is queried for sensor data when building for the DK, the event :c:enum:`SENSOR_MSG_ENVIRONMENTAL_NOT_SUPPORTED` is sent out by the module
    upon data sampling.
 
 Motion activity detection
@@ -56,9 +56,9 @@ Motion activity is detected when acceleration in either X, Y or Z plane exceeds 
 Stillness is detected when the acceleration is less than the configured inactivity threshold value for the duration of the inactivity time.
 The threshold values are set in one of the following two ways:
 
-* When receiving the :c:enum:`DATA_EVT_CONFIG_INIT` event after boot.
+* When receiving the :c:enum:`DATA_MSG_CONFIG_INIT` event after boot.
   This event contains the default threshold values set by the options :ref:`CONFIG_DATA_ACCELEROMETER_ACT_THRESHOLD <CONFIG_DATA_ACCELEROMETER_ACT_THRESHOLD>` and :ref:`CONFIG_DATA_ACCELEROMETER_INACT_THRESHOLD <CONFIG_DATA_ACCELEROMETER_INACT_THRESHOLD>` or retrieved from flash.
-* When receiving the :c:enum:`DATA_EVT_CONFIG_READY` event.
+* When receiving the :c:enum:`DATA_MSG_CONFIG_READY` event.
   This occurs when a new threshold value has been updated from cloud.
 
 Both events contain upper and lower accelerometer threshold values ``accelerometer_activity_threshold`` and ``accelerometer_inactivity_threshold`` in m/s2, present in the event structure.
@@ -68,8 +68,8 @@ Motion detection is enabled and disabled according to the device mode parameter,
 It is enabled in the passive mode and disabled in the active mode.
 Data sampling requests are sent out both on activity events and inactivity events.
 
-The sensor module sends out a :c:enum:`SENSOR_EVT_MOVEMENT_ACTIVITY_DETECTED` event if it detects movement.
-Similarly, :c:enum:`SENSOR_EVT_MOVEMENT_INACTIVITY_DETECTED` is sent out if there is no movement within the configured timeout.
+The sensor module sends out a :c:enum:`SENSOR_MSG_MOVEMENT_ACTIVITY_DETECTED` event if it detects movement.
+Similarly, :c:enum:`SENSOR_MSG_MOVEMENT_INACTIVITY_DETECTED` is sent out if there is no movement within the configured timeout.
 
 .. note::
    The DK does not have an external accelerometer.
@@ -93,7 +93,7 @@ The accelerometer records acceleration magnitude when it is in the active mode a
 The accelerometer changes to active mode when the activity threshold is exceeded and reverts to inactive mode once acceleration stays below
 :kconfig:option:`CONFIG_ADXL372_INACTIVITY_THRESHOLD` for the duration specified in the :kconfig:option:`CONFIG_ADXL372_INACTIVITY_TIME` option.
 
-When an impact has been detected, a :c:enum:`SENSOR_EVT_MOVEMENT_IMPACT_DETECTED` event is sent from the sensor module.
+When an impact has been detected, a :c:enum:`SENSOR_MSG_MOVEMENT_IMPACT_DETECTED` event is sent from the sensor module.
 
 .. _bosch_software_environmental_cluster_library:
 
@@ -113,7 +113,7 @@ Perform the following steps to enable BSEC:
 #. Disable the Zephyr BME680 driver by setting :kconfig:option:`CONFIG_BME680` to false.
 #. Enable the external sensors API BSEC integration layer by enabling :ref:`CONFIG_EXTERNAL_SENSORS_BME680_BSEC <CONFIG_EXTERNAL_SENSORS_BME680_BSEC>` option.
 
-Air quality readings are provided with the :c:enumerator:`SENSOR_EVT_ENVIRONMENTAL_DATA_READY` event.
+Air quality readings are provided with the :c:enumerator:`SENSOR_MSG_ENVIRONMENTAL_DATA_READY` event.
 
 To check and configure the BSEC configuration options, see :ref:`external_sensor_API_BSEC_configurations` section.
 
@@ -171,7 +171,7 @@ Module states
 The sensor module has an internal state machine with the following states:
 
 * ``STATE_INIT`` - The initial state of the module in which it awaits its initial configuration from the data module.
-* ``STATE_RUNNING`` - The module is initialized and can be queried for sensor data. It will also send :c:enum:`SENSOR_EVT_MOVEMENT_DATA_READY` on movement.
+* ``STATE_RUNNING`` - The module is initialized and can be queried for sensor data. It will also send :c:enum:`SENSOR_MSG_MOVEMENT_DATA_READY` on movement.
 * ``STATE_SHUTDOWN`` - The module has been shut down after receiving a request from the utility module.
 
 State transitions take place based on events from other modules, such as the app module, data module, and utility module.

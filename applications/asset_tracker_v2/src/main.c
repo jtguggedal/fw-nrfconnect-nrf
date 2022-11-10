@@ -8,7 +8,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <app_event_manager.h>
 #if defined(CONFIG_NRF_MODEM_LIB)
 #include <modem/nrf_modem_lib.h>
 #endif /* CONFIG_NRF_MODEM_LIB */
@@ -18,37 +17,16 @@
 #endif /* CONFIG_LWM2M_INTEGRATION */
 #include <net/nrf_cloud.h>
 
-/* Module name is used by the Application Event Manager macros in this file */
-#define MODULE main
-#include <caf/events/module_state_event.h>
+#if defined(CONFIG_NRF_CLOUD_AGPS) || defined(CONFIG_NRF_CLOUD_PGPS)
+#include <net/nrf_cloud_agps.h>
+#endif
 
-#include "modules_common.h"
-#include "events/app_module_event.h"
-#include "events/cloud_module_event.h"
-#include "events/data_module_event.h"
-#include "events/sensor_module_event.h"
-#include "events/util_module_event.h"
-#include "events/modem_module_event.h"
+#include "module_common.h"
 
 #include <zephyr/logging/log.h>
 #include <zephyr/logging/log_ctrl.h>
 
 LOG_MODULE_REGISTER(MODULE, CONFIG_APPLICATION_MODULE_LOG_LEVEL);
-
-/* Message structure. Events from other modules are converted to messages
- * in the Application Event Manager handler, and then queued up in the message queue
- * for processing in the main thread.
- */
-struct app_msg_data {
-	union {
-		struct cloud_module_event cloud;
-		struct sensor_module_event sensor;
-		struct data_module_event data;
-		struct util_module_event util;
-		struct modem_module_event modem;
-		struct app_module_event app;
-	} module;
-};
 
 /* Application module super states. */
 static enum state_type {
@@ -98,7 +76,7 @@ static void data_sample_timer_handler(struct k_timer *timer);
 /* Data fetching timeouts */
 #define DATA_FETCH_TIMEOUT_DEFAULT 2
 
-K_MSGQ_DEFINE(msgq_app, sizeof(struct app_msg_data), APP_QUEUE_ENTRY_COUNT,
+K_MSGQ_DEFINE(msgq_app, sizeof(struct module_msg), APP_QUEUE_ENTRY_COUNT,
 	      APP_QUEUE_BYTE_ALIGNMENT);
 
 /* Data sample timer used in active mode. */
@@ -122,6 +100,9 @@ static struct module_data self = {
 	.msg_q = &msgq_app,
 	.supports_shutdown = true,
 };
+
+/* Workaround to let other modules know about this module without changing code here. */
+struct module_data *app_module = &self;
 
 #if defined(CONFIG_NRF_MODEM_LIB)
 NRF_MODEM_LIB_ON_INIT(asset_tracker_init_hook, on_modem_lib_init, NULL);
@@ -235,68 +216,6 @@ static void handle_nrf_modem_lib_init_ret(void)
 #endif /* CONFIG_NRF_MODEM_LIB */
 }
 
-/* Application Event Manager handler. Puts event data into messages and adds them to the
- * application message queue.
- */
-static bool app_event_handler(const struct app_event_header *aeh)
-{
-	struct app_msg_data msg = {0};
-	bool enqueue_msg = false;
-
-	if (is_cloud_module_event(aeh)) {
-		struct cloud_module_event *evt = cast_cloud_module_event(aeh);
-
-		msg.module.cloud = *evt;
-		enqueue_msg = true;
-	}
-
-	if (is_app_module_event(aeh)) {
-		struct app_module_event *evt = cast_app_module_event(aeh);
-
-		msg.module.app = *evt;
-		enqueue_msg = true;
-	}
-
-	if (is_data_module_event(aeh)) {
-		struct data_module_event *evt = cast_data_module_event(aeh);
-
-		msg.module.data = *evt;
-		enqueue_msg = true;
-	}
-
-	if (is_sensor_module_event(aeh)) {
-		struct sensor_module_event *evt = cast_sensor_module_event(aeh);
-
-		msg.module.sensor = *evt;
-		enqueue_msg = true;
-	}
-
-	if (is_util_module_event(aeh)) {
-		struct util_module_event *evt = cast_util_module_event(aeh);
-
-		msg.module.util = *evt;
-		enqueue_msg = true;
-	}
-
-	if (is_modem_module_event(aeh)) {
-		struct modem_module_event *evt = cast_modem_module_event(aeh);
-
-		msg.module.modem = *evt;
-		enqueue_msg = true;
-	}
-
-	if (enqueue_msg) {
-		int err = module_enqueue_msg(&self, &msg);
-
-		if (err) {
-			LOG_ERR("Message could not be enqueued");
-			SEND_ERROR(app, APP_EVT_ERROR, err);
-		}
-	}
-
-	return false;
-}
-
 static void data_sample_timer_handler(struct k_timer *timer)
 {
 	ARG_UNUSED(timer);
@@ -308,7 +227,7 @@ static void data_sample_timer_handler(struct k_timer *timer)
 		return;
 	}
 
-	SEND_EVENT(app, APP_EVT_DATA_GET_ALL);
+	SEND_MSG_ALL(APP_MSG_DATA_GET_ALL);
 }
 
 /* Static module functions. */
@@ -346,53 +265,53 @@ static void active_mode_timers_start_all(void)
 	k_timer_stop(&movement_timeout_timer);
 }
 
-static void activity_event_handle(enum sensor_module_event_type sensor_event)
+static void activity_event_handle(enum module_msg_type msg_type)
 {
-	__ASSERT(((sensor_event == SENSOR_EVT_MOVEMENT_ACTIVITY_DETECTED) ||
-		  (sensor_event == SENSOR_EVT_MOVEMENT_INACTIVITY_DETECTED)),
+	__ASSERT(((msg_type == SENSOR_MSG_MOVEMENT_ACTIVITY_DETECTED) ||
+		  (msg_type == SENSOR_MSG_MOVEMENT_INACTIVITY_DETECTED)),
 		  "Unknown event");
 
-	activity = (sensor_event == SENSOR_EVT_MOVEMENT_ACTIVITY_DETECTED) ? true : false;
+	activity = (msg_type == SENSOR_MSG_MOVEMENT_ACTIVITY_DETECTED) ? true : false;
 
 	if (sample_request_ongoing) {
 		LOG_DBG("Sample request ongoing, abort request.");
 		return;
 	}
 
-	if ((sensor_event == SENSOR_EVT_MOVEMENT_ACTIVITY_DETECTED) &&
+	if ((msg_type == SENSOR_MSG_MOVEMENT_ACTIVITY_DETECTED) &&
 	    (k_timer_remaining_get(&movement_resolution_timer) != 0)) {
 		LOG_DBG("Movement resolution timer has not expired, abort request.");
 		return;
 	}
 
-	SEND_EVENT(app, APP_EVT_DATA_GET_ALL);
+	SEND_MSG_ALL(APP_MSG_DATA_GET_ALL);
 	passive_mode_timers_start_all();
 }
 
 static void data_get(void)
 {
-	struct app_module_event *app_module_event = new_app_module_event();
-
-	__ASSERT(app_module_event, "Not enough heap left to allocate event");
-
+	int err;
 	size_t count = 0;
+	struct module_msg msg = {
+		.type = APP_MSG_DATA_GET,
+	};
 
 	/* Set a low sample timeout. If location is requested, the sample timeout
 	 * will be increased to accommodate the location request.
 	 */
-	app_module_event->timeout = DATA_FETCH_TIMEOUT_DEFAULT;
+	msg.app.timeout = DATA_FETCH_TIMEOUT_DEFAULT;
 
 	/* Specify which data that is to be included in the transmission. */
-	app_module_event->data_list[count++] = APP_DATA_MODEM_DYNAMIC;
-	app_module_event->data_list[count++] = APP_DATA_BATTERY;
-	app_module_event->data_list[count++] = APP_DATA_ENVIRONMENTAL;
+	msg.app.data_list[count++] = APP_DATA_MODEM_DYNAMIC;
+	msg.app.data_list[count++] = APP_DATA_BATTERY;
+	msg.app.data_list[count++] = APP_DATA_ENVIRONMENTAL;
 
 	if (!modem_static_sampled) {
-		app_module_event->data_list[count++] = APP_DATA_MODEM_STATIC;
+		msg.app.data_list[count++] = APP_DATA_MODEM_STATIC;
 	}
 
 	if (!app_cfg.no_data.neighbor_cell || !app_cfg.no_data.gnss) {
-		app_module_event->data_list[count++] = APP_DATA_LOCATION;
+		msg.app.data_list[count++] = APP_DATA_LOCATION;
 
 		/* Set application module timeout when location sampling is requested.
 		 * This is selected to be long enough so that most of the GNSS would
@@ -403,25 +322,27 @@ static void data_get(void)
 		 * If the timeout would become smaller than 5s, we want to ensure some time for
 		 * the modules so the minimum value for application module timeout is 5s.
 		 */
-		app_module_event->timeout = (app_cfg.active_mode) ?
+		msg.app.timeout = (app_cfg.active_mode) ?
 			MIN(app_cfg.active_wait_timeout - 5, 110) :
 			MIN(app_cfg.movement_resolution - 5, 110);
-		app_module_event->timeout = MAX(app_module_event->timeout, 5);
+		msg.app.timeout = MAX(msg.app.timeout, 5);
 	}
 
 	/* Set list count to number of data types passed in app_module_event. */
-	app_module_event->count = count;
-	app_module_event->type = APP_EVT_DATA_GET;
+	msg.app.count = count;
 
-	APP_EVENT_SUBMIT(app_module_event);
+	err = module_send_msg_all(&msg);
+	if (err) {
+		LOG_ERR("Failed to send module_msg_GET, error: %d", err);
+	}
 }
 
 /* Message handler for STATE_INIT. */
-static void on_state_init(struct app_msg_data *msg)
+static void on_state_init(const struct module_msg *msg)
 {
-	if (IS_EVENT(msg, data, DATA_EVT_CONFIG_INIT)) {
+	if (IS_MSG(msg, DATA_MSG_CONFIG_INIT)) {
 		/* Keep a copy of the new configuration. */
-		app_cfg = msg->module.data.data.cfg;
+		app_cfg = msg->data.cfg;
 
 		if (app_cfg.active_mode) {
 			active_mode_timers_start_all();
@@ -436,23 +357,23 @@ static void on_state_init(struct app_msg_data *msg)
 }
 
 /* Message handler for STATE_RUNNING. */
-static void on_state_running(struct app_msg_data *msg)
+static void on_state_running(const struct module_msg *msg)
 {
-	if (IS_EVENT(msg, cloud, CLOUD_EVT_CONNECTED)) {
+	if (IS_MSG(msg, CLOUD_MSG_CONNECTED)) {
 		data_get();
 	}
 
-	if (IS_EVENT(msg, app, APP_EVT_DATA_GET_ALL)) {
+	if (IS_MSG(msg, APP_MSG_DATA_GET_ALL)) {
 		data_get();
 	}
 }
 
 /* Message handler for SUB_STATE_PASSIVE_MODE. */
-void on_sub_state_passive(struct app_msg_data *msg)
+void on_sub_state_passive(const struct module_msg *msg)
 {
-	if (IS_EVENT(msg, data, DATA_EVT_CONFIG_READY)) {
+	if (IS_MSG(msg, DATA_MSG_CONFIG_READY)) {
 		/* Keep a copy of the new configuration. */
-		app_cfg = msg->module.data.data.cfg;
+		app_cfg = msg->data.cfg;
 
 		if (app_cfg.active_mode) {
 			active_mode_timers_start_all();
@@ -463,18 +384,18 @@ void on_sub_state_passive(struct app_msg_data *msg)
 		passive_mode_timers_start_all();
 	}
 
-	if ((IS_EVENT(msg, sensor, SENSOR_EVT_MOVEMENT_ACTIVITY_DETECTED)) ||
-	    (IS_EVENT(msg, sensor, SENSOR_EVT_MOVEMENT_INACTIVITY_DETECTED))) {
-		activity_event_handle(msg->module.sensor.type);
+	if ((IS_MSG(msg, SENSOR_MSG_MOVEMENT_ACTIVITY_DETECTED)) ||
+	    (IS_MSG(msg, SENSOR_MSG_MOVEMENT_INACTIVITY_DETECTED))) {
+		activity_event_handle(msg->type);
 	}
 }
 
 /* Message handler for SUB_STATE_ACTIVE_MODE. */
-static void on_sub_state_active(struct app_msg_data *msg)
+static void on_sub_state_active(const struct module_msg *msg)
 {
-	if (IS_EVENT(msg, data, DATA_EVT_CONFIG_READY)) {
+	if (IS_MSG(msg, DATA_MSG_CONFIG_READY)) {
 		/* Keep a copy of the new configuration. */
-		app_cfg = msg->module.data.data.cfg;
+		app_cfg = msg->data.cfg;
 
 		if (!app_cfg.active_mode) {
 			passive_mode_timers_start_all();
@@ -487,53 +408,41 @@ static void on_sub_state_active(struct app_msg_data *msg)
 }
 
 /* Message handler for all states. */
-static void on_all_events(struct app_msg_data *msg)
+static void on_all_events(const struct module_msg *msg)
 {
-	if (IS_EVENT(msg, util, UTIL_EVT_SHUTDOWN_REQUEST)) {
+	if (IS_MSG(msg, UTIL_MSG_SHUTDOWN_REQUEST)) {
 		k_timer_stop(&data_sample_timer);
 		k_timer_stop(&movement_timeout_timer);
 		k_timer_stop(&movement_resolution_timer);
 
-		SEND_SHUTDOWN_ACK(app, APP_EVT_SHUTDOWN_READY, self.id);
+		SEND_SHUTDOWN_ACK(APP_MSG_SHUTDOWN_READY, self.id);
 		state_set(STATE_SHUTDOWN);
 	}
 
-	if (IS_EVENT(msg, modem, MODEM_EVT_MODEM_STATIC_DATA_READY)) {
+	if (IS_MSG(msg, MODEM_MSG_MODEM_STATIC_DATA_READY)) {
 		modem_static_sampled = true;
 	}
 
-	if (IS_EVENT(msg, app, APP_EVT_DATA_GET)) {
+	if (IS_MSG(msg, APP_MSG_DATA_GET)) {
 		sample_request_ongoing = true;
 	}
 
-	if (IS_EVENT(msg, data, DATA_EVT_DATA_READY)) {
+	if (IS_MSG(msg, DATA_MSG_DATA_READY)) {
 		sample_request_ongoing = false;
 	}
 
-	if (IS_EVENT(msg, sensor, SENSOR_EVT_MOVEMENT_IMPACT_DETECTED)) {
-		SEND_EVENT(app, APP_EVT_DATA_GET_ALL);
+	if (IS_MSG(msg, SENSOR_MSG_MOVEMENT_IMPACT_DETECTED)) {
+		SEND_MSG_ALL(APP_MSG_DATA_GET_ALL);
 	}
 }
 
 void main(void)
 {
 	int err;
-	struct app_msg_data msg = { 0 };
+	struct module_msg msg;
 
 	if (!IS_ENABLED(CONFIG_LWM2M_CARRIER)) {
 		handle_nrf_modem_lib_init_ret();
-	}
-
-	if (app_event_manager_init()) {
-		/* Without the Application Event Manager, the application will not work
-		 * as intended. A reboot is required in an attempt to recover.
-		 */
-		LOG_ERR("Application Event Manager could not be initialized, rebooting...");
-		k_sleep(K_SECONDS(5));
-		sys_reboot(SYS_REBOOT_COLD);
-	} else {
-		module_set_state(MODULE_STATE_READY);
-		SEND_EVENT(app, APP_EVT_START);
 	}
 
 	self.thread_id = k_current_get();
@@ -541,8 +450,12 @@ void main(void)
 	err = module_start(&self);
 	if (err) {
 		LOG_ERR("Failed starting module, error: %d", err);
-		SEND_ERROR(app, APP_EVT_ERROR, err);
+		SEND_ERROR(APP_MSG_ERROR, err);
 	}
+
+	k_sleep(K_SECONDS(5));
+
+	SEND_MSG_ALL(APP_MSG_START);
 
 	while (true) {
 		module_get_next_msg(&self, &msg);
@@ -577,11 +490,3 @@ void main(void)
 		on_all_events(&msg);
 	}
 }
-
-APP_EVENT_LISTENER(MODULE, app_event_handler);
-APP_EVENT_SUBSCRIBE_EARLY(MODULE, cloud_module_event);
-APP_EVENT_SUBSCRIBE(MODULE, app_module_event);
-APP_EVENT_SUBSCRIBE(MODULE, data_module_event);
-APP_EVENT_SUBSCRIBE(MODULE, util_module_event);
-APP_EVENT_SUBSCRIBE_FINAL(MODULE, sensor_module_event);
-APP_EVENT_SUBSCRIBE_FINAL(MODULE, modem_module_event);

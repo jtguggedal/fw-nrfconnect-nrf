@@ -119,7 +119,7 @@ Reconnection is implemented with a binary backoff based on the following lookup 
       { 65536 }, { 131072 }, { 262144 }, { 524288 }, { 1048576 }
    };
 
-If the module reaches the maximum number of reconnection attempts, the application receives an error event notification of type :c:enum:`CLOUD_EVT_ERROR`, causing the application to perform a reboot.
+If the module reaches the maximum number of reconnection attempts, the application receives an error event notification of type :c:enum:`CLOUD_MSG_ERROR`, causing the application to perform a reboot.
 
 Configuration options
 *********************

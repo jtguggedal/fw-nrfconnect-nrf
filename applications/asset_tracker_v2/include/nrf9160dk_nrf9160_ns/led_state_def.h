@@ -5,7 +5,7 @@
  */
 
 #include <caf/led_effect.h>
-#include "events/led_state_event.h"
+#include "module_common.h"
 
 /* This configuration file is included only once from led_state module and holds
  * information about LED effects associated with Asset Tracker v2 states.
