@@ -23,8 +23,8 @@ extern "C" {
 #endif
 
 /** @brief Macro used to register message types that are supported by the application. */
-#define X(name) const uint8_t name = __COUNTER__
-#define QOS_MESSAGE_TYPES_REGISTER(...) FOR_EACH(X, (;), __VA_ARGS__)
+#define QOS_TYPE(name) const uint8_t name = __COUNTER__
+#define QOS_MESSAGE_TYPES_REGISTER(...) FOR_EACH(QOS_TYPE, (;), __VA_ARGS__)
 
 /** @brief ID base used for message IDs retrieved using qos_message_id_get_next() API. */
 #define QOS_MESSAGE_ID_BASE 15000
