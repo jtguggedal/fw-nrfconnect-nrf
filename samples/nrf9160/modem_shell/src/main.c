@@ -257,7 +257,7 @@ void main(void)
 
 #if !defined(CONFIG_LWM2M_CARRIER)
 	/* Get Modem library initialization return value. */
-	err = modem_lib_init_result;
+	err = nrf_modem_lib_init(NORMAL_MODE);;
 	switch (err) {
 	case 0:
 		/* Modem library was initialized successfully. */

@@ -211,4 +211,7 @@ config MOSH_LWM2M_ENDPOINT_PREFIX
 
 endif # MOSH_CLOUD_LWM2M
 
+rsource "src/modem_trace/Kconfig.trace_flash"
+rsource "src/modem_trace/Kconfig.trace_storage"
+
 endmenu # Modem Shell

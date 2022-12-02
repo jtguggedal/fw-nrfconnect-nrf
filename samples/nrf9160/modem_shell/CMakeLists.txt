@@ -21,6 +21,7 @@ add_subdirectory(src/print)
 add_subdirectory(src/utils)
 add_subdirectory(src/uart)
 add_subdirectory(src/at)
+add_subdirectory(src/modem_trace)
 add_subdirectory_ifdef(CONFIG_MOSH_NRF91_NON_OFFLOADING_DEV src/drivers)
 add_subdirectory_ifdef(CONFIG_MOSH_WORKER_THREADS src/th)
 add_subdirectory_ifdef(CONFIG_MOSH_SOCK src/sock)
@@ -34,6 +35,8 @@ add_subdirectory_ifdef(CONFIG_MOSH_FOTA src/fota)
 add_subdirectory_ifdef(CONFIG_MOSH_REST src/rest)
 add_subdirectory_ifdef(CONFIG_MOSH_STARTUP_CMDS src/startup_cmd)
 add_subdirectory(src/cloud)
+
+zephyr_include_directories(config)
 
 if(NOT ENV{PROJECT_NAME})
   zephyr_compile_definitions(
