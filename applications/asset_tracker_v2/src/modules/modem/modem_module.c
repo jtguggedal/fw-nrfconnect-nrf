@@ -7,6 +7,7 @@
 #include <zephyr/kernel.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <sys/types.h>
 #include <math.h>
 #include <nrf_modem.h>
 #include <modem/lte_lc.h>
