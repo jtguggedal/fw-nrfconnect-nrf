@@ -8,14 +8,12 @@
 #define _MODULES_COMMON_H_
 
 /**@file
- *@brief Modules common library header.
+ * @brief Modules common library header.
  */
 
 #include <zephyr/kernel.h>
 
-#include "module_msg_types.h"
-
-#undef X
+#include "messages/msg_definitions.h"
 
 #define MODULE_DEFINITIONS					\
 	X(APP_MODULE,	 	app_module)			\
@@ -30,6 +28,16 @@
 
 struct module_msg;
 
+extern struct module_data *app_module;
+extern struct module_data *cloud_module;
+extern struct module_data *data_module;
+extern struct module_data *debug_module;
+extern struct module_data *location_module;
+extern struct module_data *modem_module;
+extern struct module_data *sensor_module;
+extern struct module_data *ui_module;
+extern struct module_data *util_module;
+
 /**
  * @defgroup module_common Module common library
  * @{
@@ -42,8 +50,8 @@ extern "C" {
 
 /** @brief Macro that checks if a message is of a certain type.
  *
- * @param _msg Pointer to message.
- * @param _type Message type.
+ *  @param _msg Pointer to message.
+ *  @param _type Message type.
  *
  * @return true if the message matches the message checked for, otherwise false.
  */
@@ -51,28 +59,28 @@ extern "C" {
 
 /** @brief Macro used to send a message without payload to a module.
  *
- * @param _dest Pointer to destination module.
- * @param _type Type of message.
+ *  @param _dest Pointer to destination module.
+ *  @param _type Type of message.
  */
 #define SEND_MSG(_dest, _type) module_send_msg(_dest, &(struct module_msg){.type = _type})
 
 /** @brief Macro used to send a message without payload to all modules.
  *
- * @param _type Type of message.
+ *  @param _type Type of message.
  */
 #define SEND_MSG_ALL(_type) module_send_msg_all(&(struct module_msg){.type = _type})
 
 /** @brief Macro used to send an error message to all modules.
  *
- * @param _type Name of the type of error message.
- * @param _error_code Error code.
+ *  @param _type Name of the type of error message.
+ *  @param _error_code Error code.
  */
 #define SEND_ERROR(_type, _error_code)  module_send_msg_all(&(struct module_msg){.type = _type})
 
 /** @brief Macro used to send a shutdown acknowledgement to the util module.
  *
- * @param _type Name of the type of shutdown message.
- * @param _id ID of the module that acknowledges the shutdown.
+ *  @param _type Name of the type of shutdown message.
+ *  @param _id ID of the module that acknowledges the shutdown.
  */
 #define SEND_SHUTDOWN_ACK(_type, _id)	\
 	module_send_msg(util_module, &(struct module_msg){.type = _type})
@@ -150,15 +158,15 @@ uint32_t module_active_count_get(void);
 struct module_msg {
 	enum module_msg_type type;
 	union {
-		struct app_module_msg app;
-		struct cloud_module_msg cloud;
-		struct data_module_msg data;
-		struct debug_module_msg debug;
-		struct location_module_msg location;
-		struct modem_module_msg modem;
-		struct sensor_module_msg sensor;
-		struct ui_module_msg ui;
-		struct util_module_msg util;
+		struct app_msg app;
+		struct cloud_msg cloud;
+		struct data_msg data;
+		struct debug_msg debug;
+		struct location_msg location;
+		struct modem_msg modem;
+		struct sensor_msg sensor;
+		struct ui_msg ui;
+		struct util_msg util;
 	};
 };
 

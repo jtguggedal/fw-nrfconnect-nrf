@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
-#ifndef _MODEM_MODULE_MSG_H_
-#define _MODEM_MODULE_MSG_H_
+#ifndef _MODEM_MSG_H_
+#define _MODEM_MSG_H_
 
 /**
- * @brief Modem module messages
- * @defgroup modem_module_msg Modem module messages
+ * @brief Modem messages
+ * @defgroup modem_msg Modem messages
  * @{
  */
 #include <zephyr/net/net_ip.h>
@@ -19,7 +19,7 @@
 extern "C" {
 #endif
 
-#define MODEM_MODULE_MSG_TYPES					\
+#define MODEM_MSG_TYPES						\
 	X(MODEM_MSG_INITIALIZED)				\
 	X(MODEM_MSG_LTE_CONNECTED)				\
 	X(MODEM_MSG_LTE_DISCONNECTED)				\
@@ -45,7 +45,7 @@ extern "C" {
 	X(MODEM_MSG_ERROR)
 
 /** @brief LTE cell information. */
-struct modem_module_cell {
+struct modem_cell {
 	/** E-UTRAN cell ID. */
 	uint32_t cell_id;
 	/** Tracking area code. */
@@ -53,7 +53,7 @@ struct modem_module_cell {
 };
 
 /** @brief PSM information. */
-struct modem_module_psm {
+struct modem_psm {
 	/** Tracking Area Update interval [s]. -1 if the timer is disabled. */
 	int tau;
 	/** Active time [s]. -1 if the timer is disabled. */
@@ -61,14 +61,14 @@ struct modem_module_psm {
 };
 
 /** @brief eDRX information. */
-struct modem_module_edrx {
+struct modem_edrx {
 	/** eDRX interval value [s] */
 	float edrx;
 	/** Paging time window [s] */
 	float ptw;
 };
 
-struct modem_module_static_modem_data {
+struct modem_static_modem_data {
 	int64_t timestamp;
 	char iccid[23];
 	char app_version[CONFIG_ASSET_TRACKER_V2_APP_VERSION_MAX_LEN];
@@ -77,7 +77,7 @@ struct modem_module_static_modem_data {
 	char imei[16];
 };
 
-struct modem_module_dynamic_modem_data {
+struct modem_dynamic_modem_data {
 	int64_t timestamp;
 	uint16_t area_code;
 	uint32_t cell_id;
@@ -103,27 +103,27 @@ struct modem_module_dynamic_modem_data {
 	bool apn_fresh		: 1;
 };
 
-struct modem_module_battery_data {
+struct modem_battery_data {
 	uint16_t battery_voltage;
 	int64_t timestamp;
 };
 
-struct modem_module_neighbor_cells {
+struct modem_neighbor_cells {
 	struct lte_lc_cells_info cell_data;
 	struct lte_lc_ncell neighbor_cells[17];
 	int64_t timestamp;
 };
 
 /** @brief Modem messages. */
-struct modem_module_msg {
+struct modem_msg {
 	union {
-		struct modem_module_static_modem_data modem_static;
-		struct modem_module_dynamic_modem_data modem_dynamic;
-		struct modem_module_battery_data bat;
-		struct modem_module_cell cell;
-		struct modem_module_psm psm;
-		struct modem_module_edrx edrx;
-		struct modem_module_neighbor_cells neighbor_cells;
+		struct modem_static_modem_data modem_static;
+		struct modem_dynamic_modem_data modem_dynamic;
+		struct modem_battery_data bat;
+		struct modem_cell cell;
+		struct modem_psm psm;
+		struct modem_edrx edrx;
+		struct modem_neighbor_cells neighbor_cells;
 		/* Module ID, used when acknowledging shutdown requests. */
 		uint32_t id;
 		int err;
@@ -138,4 +138,4 @@ struct modem_module_msg {
  * @}
  */
 
-#endif /* _MODEM_MODULE_MSG_H_ */
+#endif /* _MODEM_MSG_H_ */

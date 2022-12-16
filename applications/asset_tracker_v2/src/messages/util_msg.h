@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
-#ifndef _UTIL_MODULE_MSG_H_
-#define _UTIL_MODULE_MSG_H_
+#ifndef _UTIL_MSG_H_
+#define _UTIL_MSG_H_
 
 /**
- * @brief Util module messages
- * @defgroup util_module_message Utility module messages
+ * @brief Util messages
+ * @defgroup util_message Utility messages
  * @{
  */
 
@@ -17,10 +17,10 @@
 extern "C" {
 #endif
 
-#define UTIL_MODULE_MSG_TYPES	\
+#define UTIL_MSG_TYPES	\
 	X(UTIL_MSG_SHUTDOWN_REQUEST)
 
-/** @brief Shutdown reason included in shutdown requests from the utility module. */
+/** @brief Shutdown reason included in shutdown requests. */
 enum shutdown_reason {
 	/** Generic reason, typically an irrecoverable error. */
 	REASON_GENERIC,
@@ -28,8 +28,8 @@ enum shutdown_reason {
 	REASON_FOTA_UPDATE,
 };
 
-/** @brief Utility module messages. */
-struct util_module_msg {
+/** @brief Utility messages. */
+struct util_msg {
 	/** Variable that contains the reason for the shutdown request. */
 	enum shutdown_reason reason;
 };
@@ -42,4 +42,4 @@ struct util_module_msg {
  * @}
  */
 
-#endif /* _UTIL_MODULE_MSG_H_ */
+#endif /* _UTIL_MSG_H_ */

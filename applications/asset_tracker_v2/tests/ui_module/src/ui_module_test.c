@@ -20,10 +20,10 @@ extern struct event_listener __event_listener_ui_module;
  * function is called.
  */
 static struct app_module_event app_module_event_memory;
-static struct modem_module_event modem_module_event_memory;
+static struct modem_event modem_module_event_memory;
 static struct cloud_module_event cloud_module_event_memory;
 static struct util_module_event util_module_event_memory;
-static struct ui_module_event ui_module_event_memory;
+static struct ui_event ui_module_event_memory;
 static struct data_module_event data_module_event_memory;
 static struct location_module_event location_module_event_memory;
 
@@ -99,7 +99,7 @@ static int module_start_stub(struct module_data *module, int num_calls)
 /* Handler that validates events sent from the UI module. */
 static void validate_ui_evt(struct app_event_header *aeh, int no_of_calls)
 {
-	struct ui_module_event *event = cast_ui_module_event(aeh);
+	struct ui_event *event = cast_ui_module_event(aeh);
 
 	TEST_ASSERT_EQUAL(UI_MSG_SHUTDOWN_READY, event->type);
 }
@@ -205,7 +205,7 @@ void test_state_lte_connecting(void)
 	resetTest();
 	setup_ui_module_in_init_state();
 
-	struct modem_module_event *modem_module_event;
+	struct modem_event *modem_module_event;
 
 	/* Verify state transition to STATE_LTE_CONNECTING. */
 	TEST_SEND_EVENT(modem, MODEM_EVT_LTE_CONNECTING, modem_module_event);

@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
-#ifndef _CLOUD_MODULE_MSG_H_
-#define _CLOUD_MODULE_MSG_H_
+#ifndef _CLOUD_MSG_H_
+#define _CLOUD_MSG_H_
 
 /**
- * @brief Cloud module messages
- * @defgroup cloud_module_msg Cloud module messages
+ * @brief Cloud messages
+ * @defgroup cloud_msg Cloud messages
  * @{
  */
 
@@ -23,7 +23,7 @@
 extern "C" {
 #endif
 
-#define CLOUD_MODULE_MSG_TYPES			\
+#define CLOUD_MSG_TYPES				\
 	X(CLOUD_MSG_CONNECTED)			\
 	X(CLOUD_MSG_DISCONNECTED)		\
 	X(CLOUD_MSG_CONNECTING)			\
@@ -42,23 +42,23 @@ extern "C" {
 	X(CLOUD_MSG_SHUTDOWN_READY)		\
 	X(CLOUD_MSG_ERROR)
 
-/** @brief Structure used to acknowledge messages sent to the cloud module. */
-struct cloud_module_data_ack {
+/** @brief Structure used to acknowledge messages. */
+struct cloud_data_ack {
 	/** Pointer to data that was attempted to be sent. */
 	void *ptr;
 	/** Length of data that was attempted to be sent. */
 	size_t len;
 };
 
-/** @brief Cloud module messages. */
-struct cloud_module_msg {
+/** @brief Cloud messages. */
+struct cloud_msg {
 	union {
 		/** Variable that contains a new configuration received from the cloud service. */
 		struct cloud_data_cfg config;
 		/** Variable that contains data that was attempted to be sent. Could be used
 		 *  to free allocated data post transmission.
 		 */
-		struct cloud_module_data_ack ack;
+		struct cloud_data_ack ack;
 		/** Variable that contains the message that should be sent to cloud. */
 		struct qos_data message;
 		/** Module ID, used when acknowledging shutdown requests. */
@@ -76,4 +76,4 @@ struct cloud_module_msg {
  * @}
  */
 
-#endif /* _CLOUD_MODULE_MSG_H_ */
+#endif /* _CLOUD_MSG_H_ */

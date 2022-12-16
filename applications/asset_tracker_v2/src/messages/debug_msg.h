@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
-#ifndef _DEBUG_MODULE_MSG_H_
-#define _DEBUG_MODULE_MSG_H_
+#ifndef _DEBUG_MSG_H_
+#define _DEBUG_MSG_H_
 
 /**
- * @brief Debug module messages
- * @defgroup debug_module_msg Debug module messages
+ * @brief Debug messages
+ * @defgroup debug_msg Debug messages
  * @{
  */
 
@@ -19,21 +19,21 @@
 extern "C" {
 #endif
 
-#define DEBUG_MODULE_MSG_TYPES				\
+#define DEBUG_MSG_TYPES				\
 	X(DEBUG_MSG_MEMFAULT_DATA_READY)		\
 	X(DEBUG_MSG_QEMU_X86_INITIALIZED)		\
 	X(DEBUG_MSG_QEMU_X86_NETWORK_CONNECTED)		\
 	X(DEBUG_MSG_ERROR)
 
-struct debug_module_memfault_data {
+struct debug_memfault_data {
 	uint8_t *buf;
 	size_t len;
 };
 
 /** @brief Debug message. */
-struct debug_module_msg {
+struct debug_msg {
 	union {
-		struct debug_module_memfault_data memfault;
+		struct debug_memfault_data memfault;
 		/** Code signifying the cause of error. */
 		int err;
 	};
@@ -47,4 +47,4 @@ struct debug_module_msg {
  * @}
  */
 
-#endif /* _DEBUG_MODULE_MSG_H_ */
+#endif /* _DEBUG_MSG_H_ */

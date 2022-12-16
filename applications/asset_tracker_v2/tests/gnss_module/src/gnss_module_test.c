@@ -24,7 +24,7 @@ extern struct event_listener __event_listener_gnss_module;
  * function is called.
  */
 static struct app_module_event app_module_event_memory;
-static struct modem_module_event modem_module_event_memory;
+static struct modem_event modem_module_event_memory;
 static struct gnss_module_event gnss_module_event_memory;
 
 #define GNSS_MODULE_EVT_HANDLER(aeh) __event_listener_gnss_module.notification(aeh)
@@ -277,7 +277,7 @@ static void setup_gnss_module_in_running_state(void)
 
 	__wrap_app_event_manager_alloc_ExpectAnyArgsAndReturn(&modem_module_event_memory);
 	__wrap_app_event_manager_free_ExpectAnyArgs();
-	struct modem_module_event *modem_module_event = new_modem_module_event();
+	struct modem_event *modem_module_event = new_modem_module_event();
 
 	modem_module_event->type = MODEM_MSG_INITIALIZED;
 

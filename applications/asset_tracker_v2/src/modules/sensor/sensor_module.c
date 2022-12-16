@@ -275,7 +275,7 @@ static int setup(void)
 	return 0;
 }
 
-static bool environmental_data_requested(enum app_module_data_type *data_list,
+static bool environmental_data_requested(enum app_data_type *data_list,
 					 size_t count)
 {
 	for (size_t i = 0; i < count; i++) {

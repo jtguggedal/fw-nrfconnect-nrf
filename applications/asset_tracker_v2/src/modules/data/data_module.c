@@ -88,7 +88,7 @@ static struct k_work_delayable data_send_work;
 /* List used to keep track of responses from other modules with data that is
  * requested to be sampled/published.
  */
-static enum app_module_data_type req_type_list[APP_DATA_COUNT];
+static enum app_data_type req_type_list[APP_DATA_COUNT];
 
 /* Total number of data types requested for a particular sample/publish
  * cycle.
@@ -767,7 +767,7 @@ static void data_send_work_fn(struct k_work *work)
 	k_work_cancel_delayable(&data_send_work);
 }
 
-static void requested_data_status_set(enum app_module_data_type data_type)
+static void requested_data_status_set(enum app_data_type data_type)
 {
 	if (!k_work_delayable_is_pending(&data_send_work)) {
 		/* If the data_send_work is not pending it means that the module has already
@@ -789,7 +789,7 @@ static void requested_data_status_set(enum app_module_data_type data_type)
 	}
 }
 
-static void requested_data_list_set(const enum app_module_data_type *data_list,
+static void requested_data_list_set(const enum app_data_type *data_list,
 				    size_t count)
 {
 	if ((count == 0) || (count > APP_DATA_COUNT)) {

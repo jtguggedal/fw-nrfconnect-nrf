@@ -8,8 +8,8 @@
 #define _LOCATION_MSG_H_
 
 /**
- * @brief Location module messages
- * @defgroup location_module_msg Location module messages
+ * @brief Location messages
+ * @defgroup location_msg Location messages
  * @{
  */
 
@@ -23,7 +23,7 @@
 extern "C" {
 #endif
 
-#define LOCATION_MODULE_MSG_TYPES			\
+#define LOCATION_MSG_TYPES				\
 	X(LOCATION_MSG_GNSS_DATA_READY)			\
 	X(LOCATION_MSG_DATA_NOT_READY)			\
 	X(LOCATION_MSG_NEIGHBOR_CELLS_DATA_READY)	\
@@ -36,7 +36,7 @@ extern "C" {
 	X(LOCATION_MSG_ERROR_CODE)
 
 /** @brief Position, velocity and time (PVT) data. */
-struct location_module_pvt {
+struct location_pvt {
 	/** Longitude in degrees. */
 	double longitude;
 
@@ -56,10 +56,10 @@ struct location_module_pvt {
 	float heading;
 };
 
-/** @brief Location module data for associated payload for messages of
- *         LOCATION_MODULE_MSG_NEIGHBOR_CELLS_DATA_READY types.
+/** @brief Location data for associated payload for messages of
+ *         LOCATION_MSG_NEIGHBOR_CELLS_DATA_READY types.
  */
-struct location_module_neighbor_cells {
+struct location_neighbor_cells {
 	/** Information about the current cell. */
 	struct lte_lc_cells_info cell_data;
 	/** Information about the neighbor cells. */
@@ -68,12 +68,12 @@ struct location_module_neighbor_cells {
 	int64_t timestamp;
 };
 
-/** @brief Location module data for associated payload for messages of LOCATION_MODULE_MSG_TIMEOUT
- * 	   and LOCATION_MODULE_MSG_GNSS_DATA_READY types.
+/** @brief Location data for associated payload for messages of LOCATION_MSG_TIMEOUT
+ * 	   and LOCATION_MSG_GNSS_DATA_READY types.
  */
-struct location_module_data {
+struct location_info {
 	/** Location data in the form of a PVT structure. */
-	struct location_module_pvt pvt;
+	struct location_pvt pvt;
 
 	/** Number of satellites tracked. */
 	uint8_t satellites_tracked;
@@ -85,22 +85,22 @@ struct location_module_data {
 	int64_t timestamp;
 };
 
-/** @brief Location module message. */
-struct location_module_msg {
+/** @brief Location message. */
+struct location_msg {
 	union {
-		/** Data for message LOCATION_MODULE_MSG_GNSS_DATA_READY. */
-		struct location_module_data location;
-		/** Data for message LOCATION_MODULE_MSG_NEIGHBOR_CELLS_DATA_READY. */
-		struct location_module_neighbor_cells neighbor_cells;
-		/** Data for message LOCATION_MODULE_MSG_AGPS_NEEDED. */
+		/** Data for message LOCATION_MSG_GNSS_DATA_READY. */
+		struct location_info location;
+		/** Data for message LOCATION_MSG_NEIGHBOR_CELLS_DATA_READY. */
+		struct location_neighbor_cells neighbor_cells;
+		/** Data for message LOCATION_MSG_AGPS_NEEDED. */
 		struct nrf_modem_gnss_agps_data_frame agps_request;
 #if defined(CONFIG_NRF_CLOUD_PGPS)
-		/** Data for message LOCATION_MODULE_MSG_PGPS_NEEDED. */
+		/** Data for message LOCATION_MSG_PGPS_NEEDED. */
 		struct gps_pgps_request pgps_request;
 #endif
 		/* Module ID, used when acknowledging shutdown requests. */
 		uint32_t id;
-		/** Cause of the error for message LOCATION_MODULE_MSG_ERROR_CODE. */
+		/** Cause of the error for message LOCATION_MSG_ERROR_CODE. */
 		int err;
 	};
 };

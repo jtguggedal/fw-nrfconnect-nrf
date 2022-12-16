@@ -443,7 +443,7 @@ void location_event_handler(const struct location_event_data *event_data)
 	}
 }
 
-static bool location_data_requested(enum app_module_data_type *data_list, size_t count)
+static bool location_data_requested(enum app_data_type *data_list, size_t count)
 {
 	for (size_t i = 0; i < count; i++) {
 		if (data_list[i] == APP_DATA_LOCATION) {

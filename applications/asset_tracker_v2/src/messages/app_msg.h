@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
-#ifndef _APP_MODULE_MSG_H_
-#define _APP_MODULE_MSG_H_
+#ifndef _APP_MSG_H_
+#define _APP_MSG_H_
 
 /**
- * @brief Application module message definitions
- * @defgroup app_module_msg Application module messages
+ * @brief Application message definitions
+ * @defgroup app_msg Application messages
  * @{
  */
 
@@ -19,8 +19,8 @@
 extern "C" {
 #endif
 
-/* Defining application module messages. */
-#define APP_MODULE_MSG_TYPES		\
+/* Defining application messages. */
+#define APP_MSG_TYPES		\
 	/* but why*/			\
 	X(APP_MSG_START)		\
 	X(APP_MSG_LTE_CONNECT)		\
@@ -33,10 +33,10 @@ extern "C" {
 	X(APP_MSG_ERROR)
 
 
-/** @brief Data types that the application module requests samples for in
- *	   @ref app_module_msg_type APP_MSG_DATA_GET.
+/** @brief Data types that the application requests samples for in
+ *	   @ref app_msg_type APP_MSG_DATA_GET.
  */
-enum app_module_data_type {
+enum app_data_type {
 	APP_DATA_ENVIRONMENTAL,
 	APP_DATA_MOVEMENT,
 	APP_DATA_MODEM_STATIC,
@@ -48,9 +48,9 @@ enum app_module_data_type {
 	APP_DATA_COUNT,
 };
 
-/** @brief Application module messages. */
-struct app_module_msg {
-	enum app_module_data_type data_list[APP_DATA_COUNT];
+/** @brief Application messages. */
+struct app_msg {
+	enum app_data_type data_list[APP_DATA_COUNT];
 
 	union {
 		/** Code signifying the cause of error. */
@@ -75,4 +75,4 @@ struct app_module_msg {
  * @}
  */
 
-#endif /* _APP_MODULE_MSG_H_ */
+#endif /* _APP_MSG_H_ */

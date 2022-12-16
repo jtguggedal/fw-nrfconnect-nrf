@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
-#ifndef _DATA_MODULE_MSG_H_
-#define _DATA_MODULE_MSG_H_
+#ifndef _DATA_MSG_H_
+#define _DATA_MSG_H_
 
 /**
- * @brief Data module messages
- * @defgroup data_module_msg Data module messages
+ * @brief Data messages
+ * @defgroup data_msg Data messages
  * @{
  */
 
@@ -20,7 +20,7 @@
 extern "C" {
 #endif
 
-#define DATA_MODULE_MSG_TYPES			\
+#define DATA_MSG_TYPES				\
 	X(DATA_MSG_DATA_READY)			\
 	X(DATA_MSG_DATA_SEND)			\
 	X(DATA_MSG_DATA_SEND_BATCH)		\
@@ -39,7 +39,7 @@ extern "C" {
 	X(DATA_MSG_ERROR)
 
 /** @brief Structure that contains a pointer to encoded data. */
-struct data_module_data_buffers {
+struct data_buffer {
 	char *buf;
 	size_t len;
 	/** Object paths used in lwM2M. NULL terminated. */
@@ -48,11 +48,11 @@ struct data_module_data_buffers {
 	uint8_t valid_object_paths;
 };
 
-/** @brief Data module messages. */
-struct data_module_msg {
+/** @brief Data messages. */
+struct data_msg {
 	union {
-		/** Variable that carries a pointer to data encoded by the module. */
-		struct data_module_data_buffers buffer;
+		/** Variable that carries a pointer to encoded data. */
+		struct data_buffer buffer;
 		/** Variable that carries the current device configuration. */
 		struct cloud_data_cfg cfg;
 		/** Module ID, used when acknowledging shutdown requests. */
@@ -70,4 +70,4 @@ struct data_module_msg {
  * @}
  */
 
-#endif /* _DATA_MODULE_MSG_H_ */
+#endif /* _DATA_MSG_H_ */

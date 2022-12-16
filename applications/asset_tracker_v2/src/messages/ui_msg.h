@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
-#ifndef _UI_MODULE_MSG_H_
-#define _UI_MODULE_MSG_H_
+#ifndef _UI_MSG_H_
+#define _UI_MSG_H_
 
 /**
- * @brief UI module messages
- * @defgroup ui_module_msg UI module messages
+ * @brief UI messages
+ * @defgroup ui_msg UI messages
  * @{
  */
 
@@ -17,7 +17,7 @@
 extern "C" {
 #endif
 
-#define UI_MODULE_MSG_TYPES		\
+#define UI_MSG_TYPES		\
 	X(UI_MSG_BUTTON_DATA_READY)	\
 	X(UI_MSG_SHUTDOWN_READY)	\
 	X(UI_MSG_ERROR)
@@ -30,8 +30,8 @@ struct ui_button_data {
 	int64_t timestamp;
 };
 
-/** @brief UI module messages. */
-struct ui_module_msg {
+/** @brief UI messages. */
+struct ui_msg {
 	union {
 		/** Variable that carries button press information. */
 		struct ui_button_data btn;
@@ -50,4 +50,4 @@ struct ui_module_msg {
  * @}
  */
 
-#endif /* _UI_MODULE_MSG_H_ */
+#endif /* _UI_MSG_H_ */

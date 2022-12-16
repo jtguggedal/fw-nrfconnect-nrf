@@ -62,12 +62,12 @@ const k_tid_t module_thread;
 #define MODEM_QUEUE_ENTRY_COUNT		10
 #define MODEM_QUEUE_BYTE_ALIGNMENT	4
 
-K_MSGQ_DEFINE(modem_module_msgq, sizeof(struct module_msg),
+K_MSGQ_DEFINE(modem_msgq, sizeof(struct module_msg),
 	      MODEM_QUEUE_ENTRY_COUNT, MODEM_QUEUE_BYTE_ALIGNMENT);
 
 static struct module_data self = {
 	.name = "modem",
-	.msg_q = &modem_module_msgq,
+	.msg_q = &modem_msgq,
 	.supports_shutdown = true,
 };
 
@@ -530,12 +530,12 @@ static void populate_msg_with_dynamic_modem_data(struct module_msg *msg,
 	 * flags become false by default. This is to avoid sending garbage or old data due to a flag
 	 * being accidently set to true.
 	 */
-	memset(&msg->modem.modem_dynamic, 0, sizeof(struct modem_module_dynamic_modem_data));
+	memset(&msg->modem.modem_dynamic, 0, sizeof(struct modem_dynamic_modem_data));
 
 	/* Structure that holds previous sampled dynamic modem data. By default, set all members of
 	 * the structure to invalid values.
 	 */
-	static struct modem_module_dynamic_modem_data prev = {
+	static struct modem_dynamic_modem_data prev = {
 		.rsrp = UINT8_MAX,
 		.nw_mode = LTE_LC_LTE_MODE_NONE,
 	};
@@ -673,9 +673,9 @@ static int dynamic_modem_data_get(void)
 	return err;
 }
 
-static bool data_type_is_requested(enum app_module_data_type *data_list,
+static bool data_type_is_requested(enum app_data_type *data_list,
 				   size_t count,
-				   enum app_module_data_type type)
+				   enum app_data_type type)
 {
 	for (size_t i = 0; i < count; i++) {
 		if (data_list[i] == type) {

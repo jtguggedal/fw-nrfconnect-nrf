@@ -24,7 +24,7 @@ extern struct event_listener __event_listener_location_module;
  * function is called.
  */
 static struct app_module_event app_module_event_memory;
-static struct modem_module_event modem_module_event_memory;
+static struct modem_event modem_module_event_memory;
 static struct location_module_event location_module_event_memory;
 static struct data_module_event data_module_event_memory;
 
@@ -148,9 +148,9 @@ static void validate_location_module_evt(struct app_event_header *aeh, int no_of
 		/* Ignore search_time and timestamp verification as those values might change */
 		break;
 	case LOCATION_MODULE_EVT_NEIGHBOR_CELLS_DATA_READY: {
-		struct location_module_neighbor_cells *expected_ncells =
+		struct location_neighbor_cells *expected_ncells =
 			&expected_location_module_events[index].data.neighbor_cells;
-		struct location_module_neighbor_cells *received_ncells =
+		struct location_neighbor_cells *received_ncells =
 			&event->data.neighbor_cells;
 
 		TEST_ASSERT_EQUAL(
@@ -284,7 +284,7 @@ static void setup_location_module_in_running_state(void)
 
 	__cmock_app_event_manager_alloc_ExpectAnyArgsAndReturn(&modem_module_event_memory);
 	__cmock_app_event_manager_free_ExpectAnyArgs();
-	struct modem_module_event *modem_module_event = new_modem_module_event();
+	struct modem_event *modem_module_event = new_modem_module_event();
 
 	modem_module_event->type = MODEM_EVT_INITIALIZED;
 
@@ -540,7 +540,7 @@ void test_location_fail_init(void)
 
 	__cmock_app_event_manager_alloc_ExpectAnyArgsAndReturn(&modem_module_event_memory);
 	__cmock_app_event_manager_free_ExpectAnyArgs();
-	struct modem_module_event *modem_module_event = new_modem_module_event();
+	struct modem_event *modem_module_event = new_modem_module_event();
 
 	modem_module_event->type = MODEM_EVT_INITIALIZED;
 

@@ -154,7 +154,7 @@ uint32_t module_active_count_get(void)
 static const char *module_msg_type_strings[] = {
 #define X(_type)				\
 		[_type] = STRINGIFY(_type),
-		MODULES_MESSAGE_TYPES
+		MESSAGE_TYPES
 #undef X
 };
 
