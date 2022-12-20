@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+
 #if defined(CONFIG_NRF_MODEM_LIB)
 #include <modem/nrf_modem_lib.h>
 #endif /* CONFIG_NRF_MODEM_LIB */
@@ -21,7 +22,7 @@
 #include <net/nrf_cloud_agps.h>
 #endif
 
-#include "module_common.h"
+#include "modules/module_common.h"
 
 #include <zephyr/logging/log.h>
 #include <zephyr/logging/log_ctrl.h>
@@ -76,6 +77,7 @@ static void data_sample_timer_handler(struct k_timer *timer);
 /* Data fetching timeouts */
 #define DATA_FETCH_TIMEOUT_DEFAULT 2
 
+
 K_MSGQ_DEFINE(msgq_app, sizeof(struct module_msg), APP_QUEUE_ENTRY_COUNT,
 	      APP_QUEUE_BYTE_ALIGNMENT);
 
@@ -100,9 +102,16 @@ static struct module_data self = {
 	.msg_q = &msgq_app,
 	.supports_shutdown = true,
 };
-
 /* Workaround to let other modules know about this module without changing code here. */
 struct module_data *app_module = &self;
+
+/* Zbus listeners for all relevant channels */
+CHANNEL_LISTENER_TO_QUEUE(CLOUD_MSG_CHAN, cloud_listener);
+CHANNEL_LISTENER_TO_QUEUE(DATA_MSG_CHAN, data_listener);
+CHANNEL_LISTENER_TO_QUEUE(MODEM_MSG_CHAN, modem_listener);
+CHANNEL_LISTENER_TO_QUEUE(SENSOR_MSG_CHAN, sensor_listener);
+CHANNEL_LISTENER_TO_QUEUE(UTIL_MSG_CHAN, util_listener);
+
 
 #if defined(CONFIG_NRF_MODEM_LIB)
 NRF_MODEM_LIB_ON_INIT(asset_tracker_init_hook, on_modem_lib_init, NULL);
@@ -420,6 +429,7 @@ static void on_all_events(const struct module_msg *msg)
 	}
 
 	if (IS_MSG(msg, MODEM_MSG_MODEM_STATIC_DATA_READY)) {
+		LOG_ERR("yay");
 		modem_static_sampled = true;
 	}
 
@@ -452,6 +462,12 @@ void main(void)
 		LOG_ERR("Failed starting module, error: %d", err);
 		SEND_ERROR(APP_MSG_ERROR, err);
 	}
+
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&CLOUD_MSG_CHAN, &cloud_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&DATA_MSG_CHAN, &data_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&MODEM_MSG_CHAN, &modem_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&SENSOR_MSG_CHAN, &sensor_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&UTIL_MSG_CHAN, &util_listener, K_SECONDS(1)) == 0);
 
 	k_sleep(K_SECONDS(5));
 

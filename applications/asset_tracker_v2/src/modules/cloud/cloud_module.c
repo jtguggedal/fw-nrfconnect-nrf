@@ -100,6 +100,14 @@ static struct module_data self = {
 /* Workaround to let other modules know about this module without changing code here. */
 struct module_data *cloud_module = &self;
 
+/* Zbus listeners for all relevant channels */
+CHANNEL_LISTENER_TO_QUEUE(APP_MSG_CHAN, app_listener);
+CHANNEL_LISTENER_TO_QUEUE(CLOUD_MSG_CHAN, cloud_listener);
+CHANNEL_LISTENER_TO_QUEUE(DEBUG_MSG_CHAN, debug_listener);
+CHANNEL_LISTENER_TO_QUEUE(DATA_MSG_CHAN, data_listener);
+CHANNEL_LISTENER_TO_QUEUE(MODEM_MSG_CHAN, modem_listener);
+CHANNEL_LISTENER_TO_QUEUE(UTIL_MSG_CHAN, util_listener);
+
 /* Forward declarations. */
 static void connect_check_work_fn(struct k_work *work);
 static void send_config_received(void);
@@ -179,7 +187,7 @@ static void config_data_handle(uint8_t *buf, const size_t len)
 		send_config_received();
 	} else if (err == -ENODATA) {
 		LOG_WRN("Device configuration empty!");
-		SEND_MSG(data_module, CLOUD_MSG_CONFIG_EMPTY);
+		(void)SEND_MSG(CLOUD_MSG_CHAN, CLOUD_MSG_CONFIG_EMPTY, K_SECONDS(1));
 	} else if (err == -ECANCELED) {
 		/* The incoming message has already been handled, ignored. */
 	} else if (err == -ENOENT) {
@@ -229,18 +237,18 @@ static void cloud_wrap_event_handler(const struct cloud_wrap_event *const evt)
 	switch (evt->type) {
 	case CLOUD_WRAP_EVT_CONNECTING: {
 		LOG_DBG("CLOUD_WRAP_EVT_CONNECTING");
-		SEND_MSG(ui_module, CLOUD_MSG_CONNECTING);
+		(void)SEND_MSG(CLOUD_MSG_CHAN, CLOUD_MSG_CONNECTING, K_SECONDS(1));
 		break;
 	}
 	case CLOUD_WRAP_EVT_CONNECTED: {
 		LOG_DBG("CLOUD_WRAP_EVT_CONNECTED");
-		SEND_MSG_ALL(CLOUD_MSG_CONNECTED);
+		(void)SEND_MSG(CLOUD_MSG_CHAN, CLOUD_MSG_CONNECTED, K_SECONDS(1));
+
 		break;
 	}
 	case CLOUD_WRAP_EVT_DISCONNECTED:
 		LOG_DBG("CLOUD_WRAP_EVT_DISCONNECTED");
-		SEND_MSG(&self, CLOUD_MSG_DISCONNECTED);
-		SEND_MSG(data_module, CLOUD_MSG_DISCONNECTED);
+		(void)SEND_MSG(CLOUD_MSG_CHAN, CLOUD_MSG_DISCONNECTED, K_SECONDS(1));
 		break;
 	case CLOUD_WRAP_EVT_DATA_RECEIVED:
 		LOG_DBG("CLOUD_WRAP_EVT_DATA_RECEIVED");
@@ -264,8 +272,7 @@ static void cloud_wrap_event_handler(const struct cloud_wrap_event *const evt)
 		k_work_cancel_delayable(&connect_check_work);
 		connect_retries = 0;
 
-		SEND_MSG(modem_module, CLOUD_MSG_USER_ASSOCIATION_REQUEST);
-		SEND_MSG(ui_module, CLOUD_MSG_USER_ASSOCIATION_REQUEST);
+		(void)SEND_MSG(CLOUD_MSG_CHAN, CLOUD_MSG_USER_ASSOCIATION_REQUEST, K_SECONDS(1));
 
 		break;
 	}
@@ -279,36 +286,34 @@ static void cloud_wrap_event_handler(const struct cloud_wrap_event *const evt)
 			k_work_reschedule(&connect_check_work, K_SECONDS(5));
 		}
 
-		SEND_MSG(modem_module, CLOUD_MSG_USER_ASSOCIATED);
-		SEND_MSG(ui_module, CLOUD_MSG_USER_ASSOCIATED);
+		(void)SEND_MSG(CLOUD_MSG_CHAN, CLOUD_MSG_USER_ASSOCIATED, K_SECONDS(1));
 
 		break;
 	}
 	case CLOUD_WRAP_EVT_REBOOT_REQUEST: {
-		SEND_MSG(ui_module, CLOUD_MSG_REBOOT_REQUEST);
+		(void)SEND_MSG(CLOUD_MSG_CHAN, CLOUD_MSG_REBOOT_REQUEST, K_SECONDS(1));
 
 		break;
 	}
 	case CLOUD_WRAP_EVT_LTE_DISCONNECT_REQUEST: {
-		SEND_MSG(modem_module, CLOUD_MSG_LTE_DISCONNECT);
+		(void)SEND_MSG(CLOUD_MSG_CHAN, CLOUD_MSG_LTE_DISCONNECT, K_SECONDS(1));
 
 		break;
 	}
 	case CLOUD_WRAP_EVT_LTE_CONNECT_REQUEST: {
-		SEND_MSG(modem_module, CLOUD_MSG_LTE_CONNECT);
+		(void)SEND_MSG(CLOUD_MSG_CHAN, CLOUD_MSG_LTE_CONNECT, K_SECONDS(1));
 
 		break;
 	}
 	case CLOUD_WRAP_EVT_FOTA_DONE: {
 		LOG_DBG("CLOUD_WRAP_EVT_FOTA_DONE");
 
-		SEND_MSG(ui_module, CLOUD_MSG_FOTA_DONE);
-		SEND_MSG(util_module, CLOUD_MSG_FOTA_DONE);
+		(void)SEND_MSG(CLOUD_MSG_CHAN, CLOUD_MSG_FOTA_DONE, K_SECONDS(1));
 		break;
 	}
 	case CLOUD_WRAP_EVT_FOTA_START: {
 		LOG_DBG("CLOUD_WRAP_EVT_FOTA_START");
-		SEND_MSG(ui_module, CLOUD_MSG_FOTA_START);
+		(void)SEND_MSG(CLOUD_MSG_CHAN, CLOUD_MSG_FOTA_START, K_SECONDS(1));
 		break;
 	}
 	case CLOUD_WRAP_EVT_FOTA_ERASE_PENDING:
@@ -319,7 +324,7 @@ static void cloud_wrap_event_handler(const struct cloud_wrap_event *const evt)
 		break;
 	case CLOUD_WRAP_EVT_FOTA_ERROR: {
 		LOG_DBG("CLOUD_WRAP_EVT_FOTA_ERROR");
-		SEND_MSG(ui_module, CLOUD_MSG_FOTA_ERROR);
+		(void)SEND_MSG(CLOUD_MSG_CHAN, CLOUD_MSG_FOTA_ERROR, K_SECONDS(1));
 		break;
 	}
 	case CLOUD_WRAP_EVT_DATA_ACK: {
@@ -366,7 +371,7 @@ static void send_config_received(void)
 		.cloud.config = copy_cfg,
 	};
 
-	err = module_send_msg(data_module, &msg);
+	err = zbus_chan_pub(&CLOUD_MSG_CHAN, &msg, K_SECONDS(1));
 	if (err) {
 		LOG_ERR("Failed to send configuration update, error: %d", err);
 	}
@@ -481,7 +486,7 @@ static void qos_event_handler(const struct qos_evt *evt)
 	if (enqueue_message) {
 		err = module_enqueue_msg(&self, &msg);
 		if (err) {
-			LOG_ERR("Failed to send configuration update, error: %d", err);
+			LOG_ERR("Failed to enqueue message, error: %d", err);
 		}
 	}
 }
@@ -492,6 +497,11 @@ static void qos_event_handler(const struct qos_evt *evt)
  */
 static void connect_check_work_fn(struct k_work *work)
 {
+	int err;
+	struct module_msg msg = {
+		.type = CLOUD_MSG_CONNECTION_TIMEOUT,
+	};
+
 	if ((state == STATE_LTE_CONNECTED && sub_state == SUB_STATE_CLOUD_CONNECTED) ||
 	    (state == STATE_LTE_DISCONNECTED)) {
 		return;
@@ -499,7 +509,10 @@ static void connect_check_work_fn(struct k_work *work)
 
 	LOG_DBG("Cloud connection timeout occurred");
 
-	(void)SEND_MSG(&self, CLOUD_MSG_CONNECTION_TIMEOUT);
+	err = module_enqueue_msg(&self, &msg);
+	if (err) {
+		LOG_ERR("Failed to enqueue message, error: %d", err);
+	}
 }
 
 static int setup(void)
@@ -965,6 +978,13 @@ static void module_thread_fn(void)
 		LOG_ERR("Failed starting module, error: %d", err);
 		SEND_ERROR(CLOUD_MSG_ERROR, err);
 	}
+
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&APP_MSG_CHAN, &app_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&CLOUD_MSG_CHAN, &cloud_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&DATA_MSG_CHAN, &data_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&DEBUG_MSG_CHAN, &debug_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&MODEM_MSG_CHAN, &modem_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&UTIL_MSG_CHAN, &util_listener, K_SECONDS(1)) == 0);
 
 	state_set(STATE_LTE_INIT);
 	sub_state_set(SUB_STATE_CLOUD_DISCONNECTED);

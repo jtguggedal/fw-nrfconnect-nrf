@@ -23,6 +23,7 @@
 #include "cloud_msg.h"
 #include "data_msg.h"
 #include "debug_msg.h"
+#include "error_msg.h"
 #include "led_state_msg.h"
 #include "location_msg.h"
 #include "modem_msg.h"
@@ -39,6 +40,7 @@ extern "C" {
 		CLOUD_MSG_TYPES		\
 		DATA_MSG_TYPES		\
 		DEBUG_MSG_TYPES		\
+		ERROR_MSG_TYPES		\
 		LOCATION_MSG_TYPES	\
 		MODEM_MSG_TYPES		\
 		SENSOR_MSG_TYPES	\

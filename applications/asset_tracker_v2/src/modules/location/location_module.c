@@ -9,7 +9,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <date_time.h>
-#include <app_event_manager.h>
 #include <modem/location.h>
 #include <modem/modem_info.h>
 #include <nrf_modem_gnss.h>
@@ -32,6 +31,13 @@ BUILD_ASSERT(CONFIG_AT_MONITOR_HEAP_SIZE >= 1024,
  * that can take up to 10.24 seconds.
  */
 #define DATA_FETCH_TIMEOUT_NEIGHBORHOOD_SEARCH 11
+
+/* Forward declarations. */
+static int message_handler(struct module_msg *msg);
+static void search_start(void);
+static void inactive_send(void);
+static void time_set(void);
+static void data_send_pvt(void);
 
 /* Location module super states. */
 static enum state_type {
@@ -72,12 +78,13 @@ static struct module_data self = {
 
 struct module_data *location_module = &self;
 
-/* Forward declarations. */
-static int message_handler(struct module_msg *msg);
-static void search_start(void);
-static void inactive_send(void);
-static void time_set(void);
-static void data_send_pvt(void);
+/* Zbus listeners for all relevant channels */
+CHANNEL_LISTENER_TO_HANDLER(APP_MSG_CHAN, app_listener);
+CHANNEL_LISTENER_TO_HANDLER(CLOUD_MSG_CHAN, cloud_listener);
+CHANNEL_LISTENER_TO_HANDLER(DATA_MSG_CHAN, data_listener);
+CHANNEL_LISTENER_TO_HANDLER(LOCATION_MSG_CHAN, location_listener);
+CHANNEL_LISTENER_TO_HANDLER(MODEM_MSG_CHAN, modem_listener);
+CHANNEL_LISTENER_TO_HANDLER(UTIL_MSG_CHAN, util_listener);
 
 /* Convenience functions used in internal state handling. */
 static char *state2str(enum state_type new_state)
@@ -146,16 +153,9 @@ static void timeout_send(void)
 		},
 	};
 
-	err = module_send_msg(data_module, &msg);
+	err = zbus_chan_pub(&LOCATION_MSG_CHAN, &msg, K_SECONDS(1));
 	if (err) {
 		LOG_ERR("Failed to send message, error: %d", err);
-	}
-
-	if (IS_ENABLED(CONFIG_DEBUG_MODULE)) {
-		err = module_send_msg(debug_module, &msg);
-		if (err) {
-			LOG_ERR("Failed to send message, error: %d", err);
-		}
 	}
 }
 
@@ -177,16 +177,9 @@ static void data_send_pvt(void)
 		},
 	};
 
-	err = module_send_msg(data_module, &msg);
+	err = zbus_chan_pub(&LOCATION_MSG_CHAN, &msg, K_SECONDS(1));
 	if (err) {
 		LOG_ERR("Failed to send message, error: %d", err);
-	}
-
-	if (IS_ENABLED(CONFIG_DEBUG_MODULE)) {
-		err = module_send_msg(debug_module, &msg);
-		if (err) {
-			LOG_ERR("Failed to send message, error: %d", err);
-		}
 	}
 }
 
@@ -200,7 +193,7 @@ static void search_start(void)
 	int methods_index_cellular = -1;
 
 	if (copy_cfg.no_data.neighbor_cell && copy_cfg.no_data.gnss) {
-		SEND_MSG(data_module, LOCATION_MSG_DATA_NOT_READY);
+		SEND_MSG(LOCATION_MSG_CHAN, LOCATION_MSG_DATA_NOT_READY, K_SECONDS(1));
 		LOG_ERR("Both GNSS and cellular are configured off");
 		return;
 	}
@@ -235,21 +228,19 @@ static void search_start(void)
 
 	err = location_request(&config);
 	if (err) {
-		SEND_MSG(data_module, LOCATION_MSG_DATA_NOT_READY);
+		SEND_MSG(LOCATION_MSG_CHAN, LOCATION_MSG_DATA_NOT_READY, K_SECONDS(1));
 		LOG_ERR("Location request failed: %d", err);
 		return;
 	}
 
-	SEND_MSG(ui_module, LOCATION_MSG_ACTIVE);
-	SEND_MSG(&self, LOCATION_MSG_ACTIVE);
+	SEND_MSG(LOCATION_MSG_CHAN, LOCATION_MSG_ACTIVE, K_SECONDS(1));
 
 	stats.start_uptime = k_uptime_get();
 }
 
 static void inactive_send(void)
 {
-	SEND_MSG(ui_module, LOCATION_MSG_INACTIVE);
-	SEND_MSG(&self, LOCATION_MSG_INACTIVE);
+	SEND_MSG(LOCATION_MSG_CHAN, LOCATION_MSG_INACTIVE, K_SECONDS(1));
 }
 
 static void time_set(void)
@@ -312,7 +303,7 @@ static void send_neighbor_cell_update(struct lte_lc_cells_info *cell_info)
 			adjust_rsrq(msg.modem.neighbor_cells.neighbor_cells[i].rsrq);
 	}
 
-	err = module_send_msg(data_module, &msg);
+	err = zbus_chan_pub(&LOCATION_MSG_CHAN, &msg, K_SECONDS(1));
 	if (err) {
 		LOG_ERR("Failed to send neighbor cells update, error: %d", err);
 	}
@@ -397,7 +388,7 @@ void location_event_handler(const struct location_event_data *event_data)
 
 	case LOCATION_EVT_ERROR:
 		LOG_WRN("Getting location failed");
-		SEND_MSG(data_module, LOCATION_MSG_DATA_NOT_READY);
+		SEND_MSG(LOCATION_MSG_CHAN, LOCATION_MSG_DATA_NOT_READY, K_SECONDS(1));
 		inactive_send();
 		break;
 
@@ -410,7 +401,7 @@ void location_event_handler(const struct location_event_data *event_data)
 			.location.agps_request = event_data->agps_request,
 		};
 
-		err = module_send_msg(data_module, &msg);
+		err = zbus_chan_pub(&LOCATION_MSG_CHAN, &msg, K_SECONDS(1));
 		if (err) {
 			LOG_ERR("Failed to send neighbor cells update, error: %d", err);
 		}
@@ -421,6 +412,7 @@ void location_event_handler(const struct location_event_data *event_data)
 	case LOCATION_EVT_GNSS_PREDICTION_REQUEST: {
 		LOG_DBG("Requested P-GPS data");
 #if defined(CONFIG_LOCATION_METHOD_GNSS_PGPS_EXTERNAL)
+		// TODO: Convert to zbus and verify it's working
 		struct location_module_event *location_module_event = new_location_module_event();
 
 		location_module_event->data.pgps_request = event_data->pgps_request;
@@ -575,6 +567,13 @@ static int location_module_start(const struct device *dev)
 	self.message_handler = message_handler;
 
 	__ASSERT_NO_MSG(module_start(&self) == 0);
+
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&APP_MSG_CHAN, &app_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&CLOUD_MSG_CHAN, &cloud_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&DATA_MSG_CHAN, &data_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&LOCATION_MSG_CHAN, &location_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&MODEM_MSG_CHAN, &modem_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&UTIL_MSG_CHAN, &util_listener, K_SECONDS(1)) == 0);
 
 	return 0;
 }

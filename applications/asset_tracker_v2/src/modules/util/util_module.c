@@ -41,6 +41,17 @@ static struct module_data self = {
 /* Workaround to let other modules know about this module without changing code here. */
 struct module_data *util_module = &self;
 
+/* Zbus listeners for all relevant channels */
+CHANNEL_LISTENER_TO_HANDLER(APP_MSG_CHAN, app_listener);
+CHANNEL_LISTENER_TO_HANDLER(CLOUD_MSG_CHAN, cloud_listener);
+CHANNEL_LISTENER_TO_HANDLER(DATA_MSG_CHAN, data_listener);
+CHANNEL_LISTENER_TO_HANDLER(LOCATION_MSG_CHAN, location_listener);
+CHANNEL_LISTENER_TO_HANDLER(MODEM_MSG_CHAN, modem_listener);
+CHANNEL_LISTENER_TO_HANDLER(SENSOR_MSG_CHAN, sensor_listener);
+CHANNEL_LISTENER_TO_HANDLER(UI_MSG_CHAN, ui_listener);
+CHANNEL_LISTENER_TO_HANDLER(UTIL_MSG_CHAN, util_listener);
+
+
 /* Convenience functions used in internal state handling. */
 static char *state2str(enum state_type new_state)
 {
@@ -223,6 +234,16 @@ static int util_module_start(const struct device *dev)
 	self.message_handler = message_handler;
 
 	__ASSERT_NO_MSG(module_start(&self) == 0);
+
+
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&APP_MSG_CHAN, &app_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&CLOUD_MSG_CHAN, &cloud_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&DATA_MSG_CHAN, &data_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&LOCATION_MSG_CHAN, &location_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&MODEM_MSG_CHAN, &modem_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&SENSOR_MSG_CHAN, &sensor_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&UI_MSG_CHAN, &ui_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&UTIL_MSG_CHAN, &util_listener, K_SECONDS(1)) == 0);
 
 #if defined(CONFIG_WATCHDOG_APPLICATION)
 	int err = watchdog_init_and_start();

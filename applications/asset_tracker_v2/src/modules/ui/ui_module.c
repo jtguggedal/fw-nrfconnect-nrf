@@ -89,6 +89,15 @@ struct module_data *ui_module = &self;
 /* Forward declarations. */
 static int message_handler(struct module_msg *msg);
 
+/* Zbus listeners for all relevant channels */
+CHANNEL_LISTENER_TO_HANDLER(APP_MSG_CHAN, app_listener);
+CHANNEL_LISTENER_TO_HANDLER(CLOUD_MSG_CHAN, cloud_listener);
+CHANNEL_LISTENER_TO_HANDLER(DATA_MSG_CHAN, data_listener);
+CHANNEL_LISTENER_TO_HANDLER(LOCATION_MSG_CHAN, location_listener);
+CHANNEL_LISTENER_TO_HANDLER(MODEM_MSG_CHAN, modem_listener);
+CHANNEL_LISTENER_TO_HANDLER(SENSOR_MSG_CHAN, sensor_listener);
+CHANNEL_LISTENER_TO_HANDLER(UTIL_MSG_CHAN, util_listener);
+
 /* Convenience functions used in internal state handling. */
 static char *state2str(enum state_type new_state)
 {
@@ -191,12 +200,7 @@ static void button_handler(uint32_t button_states, uint32_t has_changed)
 			.ui.btn.timestamp = k_uptime_get(),
 		};
 
-		err = module_send_msg(data_module, &msg);
-		if (err) {
-			LOG_ERR("Failed to send button data, error: %d", err);
-		}
-
-		err = module_send_msg(app_module, &msg);
+		err = zbus_chan_pub(&UI_MSG_CHAN, &msg, K_SECONDS(1));
 		if (err) {
 			LOG_ERR("Failed to send button data, error: %d", err);
 		}
@@ -211,7 +215,7 @@ static void button_handler(uint32_t button_states, uint32_t has_changed)
 			.ui.btn.timestamp = k_uptime_get(),
 		};
 
-		err = module_send_msg_all(&msg);
+		err = zbus_chan_pub(&UI_MSG_CHAN, &msg, K_SECONDS(1));
 		if (err) {
 			LOG_ERR("Failed to send button data, error: %d", err);
 		}
@@ -569,6 +573,13 @@ static int ui_module_start(const struct device *dev)
 	int err;
 
 	self.message_handler = message_handler;
+
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&APP_MSG_CHAN, &app_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&CLOUD_MSG_CHAN, &cloud_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&DATA_MSG_CHAN, &data_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&LOCATION_MSG_CHAN, &location_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&MODEM_MSG_CHAN, &modem_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&UTIL_MSG_CHAN, &util_listener, K_SECONDS(1)) == 0);
 
 	__ASSERT_NO_MSG(module_start(&self) == 0);
 

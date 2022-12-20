@@ -74,6 +74,12 @@ static struct module_data self = {
 /* Workaround to let other modules know about this module without changing code here. */
 struct module_data *modem_module = &self;
 
+/* Zbus listeners for all relevant channels */
+CHANNEL_LISTENER_TO_QUEUE(APP_MSG_CHAN, app_listener);
+CHANNEL_LISTENER_TO_QUEUE(CLOUD_MSG_CHAN, cloud_listener);
+CHANNEL_LISTENER_TO_QUEUE(MODEM_MSG_CHAN, modem_listener);
+CHANNEL_LISTENER_TO_QUEUE(UTIL_MSG_CHAN, util_listener);
+
 /* Forward declarations. */
 static void send_cell_update(uint32_t cell_id, uint32_t tac);
 static void send_psm_update(int tau, int active_time);
@@ -214,13 +220,12 @@ void pdn_event_handler(uint8_t cid, enum pdn_event event, int reason)
 		break;
 	case PDN_EVENT_ACTIVATED:
 		LOG_DBG("PDN_EVENT_ACTIVATED");
-		(void)SEND_MSG_ALL(MODEM_MSG_LTE_CONNECTED);
+		(void)SEND_MSG(MODEM_MSG_CHAN, MODEM_MSG_LTE_CONNECTED, K_SECONDS(1));
 		break;
 	case PDN_EVENT_DEACTIVATED:
 		LOG_DBG("PDN_EVENT_DEACTIVATED");
 
-		(void)SEND_MSG(&self, MODEM_MSG_LTE_DISCONNECTED);
-		(void)SEND_MSG(cloud_module, MODEM_MSG_LTE_DISCONNECTED);
+		(void)SEND_MSG(MODEM_MSG_CHAN, MODEM_MSG_LTE_DISCONNECTED, K_SECONDS(1));
 		break;
 	case PDN_EVENT_IPV6_UP:
 		LOG_DBG("PDN_EVENT_IPV6_UP");
@@ -332,17 +337,17 @@ int lwm2m_carrier_event_handler(const lwm2m_carrier_event_t *evt)
 	switch (evt->type) {
 	case LWM2M_CARRIER_EVENT_INIT: {
 		LOG_INF("LWM2M_CARRIER_EVENT_INIT");
-		SEND_MSG(&self, MODEM_MSG_CARRIER_INITIALIZED);
+		(void)SEND_MSG(MODEM_MSG_CHAN, MODEM_MSG_CARRIER_INITIALIZED, K_SECONDS(1));
 		break;
 	}
 	case LWM2M_CARRIER_EVENT_LTE_LINK_UP: {
 		LOG_INF("LWM2M_CARRIER_EVENT_LTE_LINK_UP");
-		SEND_MSG(&self, MODEM_MSG_CARRIER_EVENT_LTE_LINK_UP_REQUEST);
+		(void)SEND_MSG(MODEM_MSG_CHAN, MODEM_MSG_CARRIER_EVENT_LTE_LINK_UP_REQUEST, K_SECONDS(1));
 		break;
 	}
 	case LWM2M_CARRIER_EVENT_LTE_LINK_DOWN: {
 		LOG_INF("LWM2M_CARRIER_EVENT_LTE_LINK_DOWN");
-		SEND_MSG(&self, MODEM_MSG_CARRIER_EVENT_LTE_LINK_DOWN_REQUEST);
+		(void)SEND_MSG(MODEM_MSG_CHAN, MODEM_MSG_CARRIER_EVENT_LTE_LINK_DOWN_REQUEST, K_SECONDS(1));
 		break;
 	}
 	case LWM2M_CARRIER_EVENT_LTE_POWER_OFF:
@@ -360,12 +365,12 @@ int lwm2m_carrier_event_handler(const lwm2m_carrier_event_t *evt)
 		break;
 	case LWM2M_CARRIER_EVENT_FOTA_START: {
 		LOG_INF("LWM2M_CARRIER_EVENT_FOTA_START");
-		SEND_MSG(cloud_module MODEM_MSG_CARRIER_FOTA_PENDING);
+		(void)SEND_MSG(MODEM_MSG_CHAN, MODEM_MSG_CARRIER_FOTA_PENDING, K_SECONDS(1));
 		break;
 	}
 	case LWM2M_CARRIER_EVENT_REBOOT: {
 		LOG_INF("LWM2M_CARRIER_EVENT_REBOOT");
-		SEND_MSG(util_module MODEM_MSG_CARRIER_REBOOT_REQUEST);
+		(void)SEND_MSG(MODEM_MSG_CHAN, MODEM_MSG_CARRIER_REBOOT_REQUEST, K_SECONDS(1));
 
 		/* 1 is returned here to indicate to the carrier library that
 		 * the application will handle rebooting of the system to
@@ -386,7 +391,7 @@ int lwm2m_carrier_event_handler(const lwm2m_carrier_event_t *evt)
 				  err->type == LWM2M_CARRIER_ERROR_FOTA_CONN_LOST ||
 				  err->type == LWM2M_CARRIER_ERROR_FOTA_FAIL;
 		if (fota_error) {
-			SEND_MSG(&self, MODEM_MSG_CARRIER_FOTA_STOPPED);
+			(void)SEND_MSG(MODEM_MSG_CHAN, MODEM_MSG_CARRIER_FOTA_STOPPED, K_SECONDS(1));
 		}
 		break;
 	}
@@ -502,15 +507,7 @@ static int static_modem_data_get(void)
 	msg.modem.modem_static.iccid[sizeof(msg.modem.modem_static.iccid) - 1] = '\0';
 	msg.modem.modem_static.imei[sizeof(msg.modem.modem_static.imei) - 1] = '\0';
 
-	err = module_send_msg(data_module, &msg);
-	if (err) {
-		LOG_ERR("Failed to send static modem data, error: %d", err);
-	}
-
-	err = module_send_msg(app_module, &msg);
-	if (err) {
-		LOG_ERR("Failed to send static modem data, error: %d", err);
-	}
+	__ASSERT_NO_MSG(zbus_chan_pub(&MODEM_MSG_CHAN, &msg, K_SECONDS(1)) == 0);
 
 	return err;
 }
@@ -665,7 +662,7 @@ static int dynamic_modem_data_get(void)
 
 	populate_msg_with_dynamic_modem_data(&msg, &modem_param);
 
-	err = module_send_msg(cloud_module, &msg);
+	err = zbus_chan_pub(&MODEM_MSG_CHAN, &msg, K_SECONDS(1));
 	if (err) {
 		LOG_ERR("Failed to send dynamic modem data, error: %d", err);
 	}
@@ -703,7 +700,7 @@ static int battery_data_get(void)
 
 	msg.modem.bat.battery_voltage = modem_param.device.battery.value;
 
-	err = module_send_msg(data_module, &msg);
+	err = zbus_chan_pub(&MODEM_MSG_CHAN, &msg, K_SECONDS(1));
 	if (err) {
 		LOG_ERR("Failed to send battery voltage, error: %d", err);
 	}
@@ -741,8 +738,7 @@ static int lte_connect(void)
 		return err;
 	}
 
-	(void)SEND_MSG(&self, MODEM_MSG_LTE_CONNECTING);
-	(void)SEND_MSG(ui_module, MODEM_MSG_LTE_CONNECTING);
+	(void)SEND_MSG(MODEM_MSG_CHAN, MODEM_MSG_LTE_CONNECTING, K_SECONDS(1));
 
 	return 0;
 }
@@ -822,8 +818,7 @@ static void on_state_init(struct module_msg *msg)
 		err = setup();
 		__ASSERT(err == 0, "Failed running setup()");
 
-		SEND_MSG(cloud_module, MODEM_MSG_INITIALIZED);
-		SEND_MSG(location_module, MODEM_MSG_INITIALIZED);
+		(void)SEND_MSG(MODEM_MSG_CHAN, MODEM_MSG_INITIALIZED, K_SECONDS(1));
 
 		err = lte_connect();
 		if (err) {
@@ -952,7 +947,8 @@ static void on_all_states(struct module_msg *msg)
 
 			err = static_modem_data_get();
 			if (err) {
-				SEND_MSG(data_module, MODEM_MSG_MODEM_STATIC_DATA_NOT_READY);
+				(void)SEND_MSG(MODEM_MSG_CHAN,
+					MODEM_MSG_MODEM_STATIC_DATA_NOT_READY, K_SECONDS(1));
 			}
 		}
 
@@ -964,7 +960,9 @@ static void on_all_states(struct module_msg *msg)
 
 			err = dynamic_modem_data_get();
 			if (err) {
-				SEND_MSG(data_module, MODEM_MSG_MODEM_DYNAMIC_DATA_NOT_READY);
+				(void)SEND_MSG(MODEM_MSG_CHAN,
+					MODEM_MSG_MODEM_DYNAMIC_DATA_NOT_READY, K_SECONDS(1));
+
 			}
 		}
 
@@ -976,7 +974,8 @@ static void on_all_states(struct module_msg *msg)
 
 			err = battery_data_get();
 			if (err) {
-				SEND_MSG(data_module, MODEM_MSG_BATTERY_DATA_NOT_READY);
+				(void)SEND_MSG(MODEM_MSG_CHAN,
+					MODEM_MSG_BATTERY_DATA_NOT_READY, K_SECONDS(1));
 			}
 		}
 	}
@@ -1001,13 +1000,17 @@ static void module_thread_fn(void)
 		SEND_ERROR(MODEM_MSG_ERROR, err);
 	}
 
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&APP_MSG_CHAN, &app_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&CLOUD_MSG_CHAN, &cloud_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&MODEM_MSG_CHAN, &modem_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&UTIL_MSG_CHAN, &util_listener, K_SECONDS(1)) == 0);
+
 	if (IS_ENABLED(CONFIG_LWM2M_CARRIER)) {
 		state_set(STATE_INIT);
 	} else {
 		state_set(STATE_DISCONNECTED);
 
-		SEND_MSG(cloud_module, MODEM_MSG_INITIALIZED);
-		SEND_MSG(location_module, MODEM_MSG_INITIALIZED);
+		(void)SEND_MSG(MODEM_MSG_CHAN, MODEM_MSG_INITIALIZED, K_SECONDS(1));
 
 		err = setup();
 		if (err) {

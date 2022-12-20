@@ -33,7 +33,14 @@ static struct module_data self = {
 	.msg_q = NULL,
 	.supports_shutdown = false,
 };
+
 struct module_data *debug_module = &self;
+
+CHANNEL_LISTENER_TO_HANDLER(APP_MSG_CHAN, app_listener);
+CHANNEL_LISTENER_TO_HANDLER(CLOUD_MSG_CHAN, cloud_listener);
+CHANNEL_LISTENER_TO_HANDLER(DATA_MSG_CHAN, data_listener);
+CHANNEL_LISTENER_TO_HANDLER(LOCATION_MSG_CHAN, location_listener);
+CHANNEL_LISTENER_TO_HANDLER(MODEM_MSG_CHAN, modem_listener);
 
 #if defined(CONFIG_MEMFAULT)
 /* Enumerator used to specify what type of Memfault that is sent. */
@@ -46,7 +53,6 @@ static K_SEM_DEFINE(mflt_internal_send_sem, 0, 1);
 
 static void memfault_internal_send(void)
 {
-<<<<<<< HEAD:applications/asset_tracker_v2/src/modules/debug_module.c
 	while (1) {
 		k_sem_take(&mflt_internal_send_sem, K_FOREVER);
 
@@ -88,7 +94,7 @@ static void memfault_internal_send(void)
 			msg.module.debug.memfault.len = len;
 			msg.module.debug.memfault.buf = message;
 
-			err = module_send_msg(cloud_module, &msg);
+			err = zbus_chan_pub(&DEBUG_MSG_CHAN, &msg);
 			if (err) {
 				LOG_ERR("Failed to send Memfault message, error: %d", err);
 			}
@@ -186,11 +192,7 @@ static void add_location_metrics(uint8_t satellites, uint32_t search_time,
 		}
 		break;
 	default:
-<<<<<<< HEAD:applications/asset_tracker_v2/src/modules/debug_module.c
 		LOG_ERR("Unknown location module event.");
-=======
-		LOG_ERR("Unknown GNSS module messages type");
->>>>>>> WIP: Removing event manager and restructuring file tree accordingly:applications/asset_tracker_v2/src/modules/debug/debug_module.c
 		return;
 	}
 
@@ -281,8 +283,8 @@ static int message_handler(struct module_msg *msg)
 		 * when building for QEMU x86.
 		 */
 		if (IS_ENABLED(CONFIG_BOARD_QEMU_X86)) {
-			SEND_MSG(cloud_module, DEBUG_MSG_QEMU_X86_INITIALIZED);
-			SEND_MSG(cloud_module, DEBUG_MSG_QEMU_X86_NETWORK_CONNECTED);
+			SEND_MSG(DEBUG_MSG_CHAN, DEBUG_MSG_QEMU_X86_INITIALIZED, K_SECONDS(1));
+			SEND_MSG(DEBUG_MSG_CHAN, DEBUG_MSG_QEMU_X86_NETWORK_CONNECTED, K_SECONDS(1));
 		}
 	}
 
@@ -300,6 +302,12 @@ static int debug_module_start(const struct device *dev)
 	self.message_handler = message_handler;
 
 	__ASSERT_NO_MSG(module_start(&self) == 0);
+
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&APP_MSG_CHAN, &app_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&CLOUD_MSG_CHAN, &cloud_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&DATA_MSG_CHAN, &data_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&LOCATION_MSG_CHAN, &location_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&MODEM_MSG_CHAN, &modem_listener, K_SECONDS(1)) == 0);
 
 	return 0;
 }

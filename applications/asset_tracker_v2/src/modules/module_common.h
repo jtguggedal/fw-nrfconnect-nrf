@@ -14,6 +14,7 @@
 #include <zephyr/kernel.h>
 
 #include "messages/msg_definitions.h"
+#include "messages/msg_channels.h"
 
 #define MODULE_DEFINITIONS					\
 	X(APP_MODULE,	 	app_module)			\
@@ -59,10 +60,12 @@ extern "C" {
 
 /** @brief Macro used to send a message without payload to a module.
  *
- *  @param _dest Pointer to destination module.
+ *  @param _chan Channel on which to send the message.
  *  @param _type Type of message.
+ *  @param _timeout Timeout for sending message on the channel.
  */
-#define SEND_MSG(_dest, _type) module_send_msg(_dest, &(struct module_msg){.type = _type})
+#define SEND_MSG(_chan, _type, _timeout) \
+	zbus_chan_pub(&_chan, &(struct module_msg){.type = _type}, _timeout)
 
 /** @brief Macro used to send a message without payload to all modules.
  *
@@ -70,12 +73,13 @@ extern "C" {
  */
 #define SEND_MSG_ALL(_type) module_send_msg_all(&(struct module_msg){.type = _type})
 
-/** @brief Macro used to send an error message to all modules.
+/** @brief Macro used to send an error message to the error channel.
  *
  *  @param _type Name of the type of error message.
  *  @param _error_code Error code.
  */
-#define SEND_ERROR(_type, _error_code)  module_send_msg_all(&(struct module_msg){.type = _type})
+#define SEND_ERROR(_type, _error_code)	\
+	zbus_chan_pub(&ERROR_MSG_CHAN, &(struct module_msg){.type = _type}, K_FOREVER)
 
 /** @brief Macro used to send a shutdown acknowledgement to the util module.
  *
@@ -162,6 +166,7 @@ struct module_msg {
 		struct cloud_msg cloud;
 		struct data_msg data;
 		struct debug_msg debug;
+		struct error_msg error;
 		struct location_msg location;
 		struct modem_msg modem;
 		struct sensor_msg sensor;

@@ -134,6 +134,16 @@ static struct module_data self = {
 /* Workaround to let other modules know about this module without changing code here. */
 struct module_data *data_module = &self;
 
+/* Zbus listeners for all relevant channels */
+CHANNEL_LISTENER_TO_QUEUE(APP_MSG_CHAN, app_listener);
+CHANNEL_LISTENER_TO_QUEUE(CLOUD_MSG_CHAN, cloud_listener);
+CHANNEL_LISTENER_TO_QUEUE(DATA_MSG_CHAN, data_listener);
+CHANNEL_LISTENER_TO_QUEUE(LOCATION_MSG_CHAN, location_listener);
+CHANNEL_LISTENER_TO_QUEUE(MODEM_MSG_CHAN, modem_listener);
+CHANNEL_LISTENER_TO_QUEUE(SENSOR_MSG_CHAN, sensor_listener);
+CHANNEL_LISTENER_TO_QUEUE(UI_MSG_CHAN, ui_listener);
+CHANNEL_LISTENER_TO_QUEUE(UTIL_MSG_CHAN, util_listener);
+
 /* Forward declarations */
 static void data_send_work_fn(struct k_work *work);
 static int config_settings_handler(const char *key, size_t len,
@@ -299,7 +309,7 @@ static void date_time_event_handler(const struct date_time_evt *evt)
 		/* Fall through. */
 	case DATE_TIME_OBTAINED_EXT: {
 		// TODO: Decide how to handle errors. Is this really critical?
-		SEND_MSG(cloud_module, DATA_MSG_DATE_TIME_OBTAINED);
+		(void)SEND_MSG(DATA_MSG_CHAN, DATA_MSG_DATE_TIME_OBTAINED, K_SECONDS(1));
 
 		/* De-register handler. At this point the application will have
 		 * date time to depend on indefinitely until a reboot occurs.
@@ -417,12 +427,13 @@ static void config_distribute(enum module_msg_type type)
 	if (err) {
 		LOG_ERR("Failed to distribute configuration");
 	}
+
+	__ASSERT_NO_MSG(zbus_chan_pub(&DATA_MSG_CHAN, &msg, K_SECONDS(1)) == 0);
 }
 
 static void data_send(enum module_msg_type type,
 		      struct cloud_codec_data *data)
 {
-	int err;
 	struct module_msg msg = {
 		.type = type,
 		.data.cfg = current_cfg,
@@ -436,17 +447,7 @@ static void data_send(enum module_msg_type type,
 		msg.data.buffer.len = data->len;
 	}
 
-	err = module_send_msg(cloud_module, &msg);
-	if (err) {
-		LOG_ERR("Failed to distribute configuration");
-	}
-
-	if (IS_ENABLED(CONFIG_DEBUG_MODULE)) {
-		err = module_send_msg(debug_module, &msg);
-		if (err) {
-			LOG_ERR("Failed to distribute configuration");
-		}
-	}
+	__ASSERT_NO_MSG(zbus_chan_pub(&DATA_MSG_CHAN, &msg, K_SECONDS(1)) == 0);
 
 	/* Reset buffer */
 	memset(data, 0, sizeof(struct cloud_codec_data));
@@ -678,7 +679,7 @@ static int agps_request_encode(struct nrf_modem_gnss_agps_data_frame *incoming_r
 
 static void config_get(void)
 {
-	SEND_MSG_ALL(DATA_MSG_CONFIG_GET);
+	__ASSERT_NO_MSG(SEND_MSG(DATA_MSG_CHAN, DATA_MSG_CONFIG_GET, K_SECONDS(1)) == 0);
 }
 
 static void config_send(void)
@@ -761,7 +762,7 @@ static void requested_data_clear(void)
 
 static void data_send_work_fn(struct k_work *work)
 {
-	(void)SEND_MSG(&self, DATA_MSG_DATA_READY);
+	__ASSERT_NO_MSG(SEND_MSG(DATA_MSG_CHAN, DATA_MSG_DATA_READY, K_SECONDS(1)) == 0);
 
 	requested_data_clear();
 	k_work_cancel_delayable(&data_send_work);
@@ -1152,12 +1153,15 @@ static void on_all_states(const struct module_msg *msg)
 			.btn_ts = msg->ui.btn.timestamp,
 			.queued = true
 		};
+		struct module_msg msg = {
+			.type = DATA_MSG_UI_DATA_READY,
+		};
 
 		cloud_codec_populate_ui_buffer(ui_buf, &new_ui_data,
 					       &head_ui_buf,
 					       ARRAY_SIZE(ui_buf));
 
-		(void)SEND_MSG(&self, DATA_MSG_UI_DATA_READY);
+		(void)module_enqueue_msg(&self, &msg);
 		return;
 	}
 
@@ -1279,12 +1283,15 @@ static void on_all_states(const struct module_msg *msg)
 			.ts = msg->sensor.impact.timestamp,
 			.queued = true
 		};
+		struct module_msg msg = {
+			.type = DATA_MSG_IMPACT_DATA_READY,
+		};
 
 		cloud_codec_populate_impact_buffer(impact_buf, &new_impact_data,
 						   &head_impact_buf,
 						   ARRAY_SIZE(impact_buf));
 
-		(void)SEND_MSG(&self, DATA_MSG_IMPACT_DATA_READY);
+		(void)module_enqueue_msg(&self, &msg);
 		return;
 	}
 
@@ -1353,6 +1360,15 @@ static void module_thread_fn(void)
 		LOG_ERR("Failed starting module, error: %d", err);
 		SEND_ERROR(DATA_MSG_ERROR, err);
 	}
+
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&APP_MSG_CHAN, &app_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&CLOUD_MSG_CHAN, &cloud_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&DATA_MSG_CHAN, &data_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&LOCATION_MSG_CHAN, &location_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&MODEM_MSG_CHAN, &modem_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&SENSOR_MSG_CHAN, &sensor_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&UI_MSG_CHAN, &ui_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&UTIL_MSG_CHAN, &util_listener, K_SECONDS(1)) == 0);
 
 	state_set(STATE_CLOUD_DISCONNECTED);
 

@@ -42,6 +42,11 @@ static struct module_data self = {
 /* Workaround to let other modules know about this module without changing code here. */
 struct module_data *sensor_module = &self;
 
+/* Zbus listeners for all relevant channels */
+CHANNEL_LISTENER_TO_QUEUE(APP_MSG_CHAN, app_listener);
+CHANNEL_LISTENER_TO_QUEUE(DATA_MSG_CHAN, data_listener);
+CHANNEL_LISTENER_TO_QUEUE(UTIL_MSG_CHAN, util_listener);
+
 /* Convenience functions used in internal state handling. */
 static char *state2str(enum state_type new_state)
 {
@@ -97,9 +102,9 @@ static void activity_data_send(const struct ext_sensor_evt *const acc_data)
 		msg.type = SENSOR_MSG_MOVEMENT_INACTIVITY_DETECTED;
 	}
 
-	err = module_send_msg(app_module, &msg);
+	err = zbus_chan_pub(&SENSOR_MSG_CHAN, &msg, K_SECONDS(1));
 	if (err) {
-		LOG_ERR("Failed to send impact data, error: %d", err);
+		LOG_ERR("Failed to send activity data, error: %d", err);
 	}
 }
 
@@ -114,7 +119,7 @@ static void impact_data_send(const struct ext_sensor_evt *const evt)
 		},
 	};
 
-	err = module_send_msg(data_module, &msg);
+	err = zbus_chan_pub(&SENSOR_MSG_CHAN, &msg, K_SECONDS(1));
 	if (err) {
 		LOG_ERR("Failed to send impact data, error: %d", err);
 	}
@@ -206,6 +211,7 @@ static void environmental_data_get(void)
 	struct module_msg msg;
 
 #if defined(CONFIG_EXTERNAL_SENSORS)
+	// TODO: Convert to zbus
 	double temperature = 0, humidity = 0, pressure = 0;
 	uint16_t bsec_air_quality = UINT16_MAX;
 
@@ -255,7 +261,7 @@ static void environmental_data_get(void)
 
 	msg.type = SENSOR_MSG_ENVIRONMENTAL_NOT_SUPPORTED;
 #endif
-	err = module_send_msg(data_module, &msg);
+	err = zbus_chan_pub(&SENSOR_MSG_CHAN, &msg, K_SECONDS(1));
 	if (err) {
 		LOG_ERR("Failed to send message, error: %d", err);
 	}
@@ -340,6 +346,10 @@ static void module_thread_fn(void)
 	}
 
 	state_set(STATE_INIT);
+
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&APP_MSG_CHAN, &app_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&DATA_MSG_CHAN, &data_listener, K_SECONDS(1)) == 0);
+	__ASSERT_NO_MSG(zbus_chan_add_obs(&UTIL_MSG_CHAN, &util_listener, K_SECONDS(1)) == 0);
 
 	err = setup();
 	if (err) {
