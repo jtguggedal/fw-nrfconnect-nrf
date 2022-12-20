@@ -14,24 +14,30 @@
  */
 
 #include <zephyr/kernel.h>
+#include <zephyr/zbus/zbus.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* Defining application messages. */
-#define APP_MSG_TYPES		\
-	/* but why*/			\
-	X(APP_MSG_START)		\
-	X(APP_MSG_LTE_CONNECT)		\
-	X(APP_MSG_LTE_DISCONNECT)	\
-	X(APP_MSG_DATA_GET)		\
-	X(APP_MSG_DATA_GET_ALL)		\
-	X(APP_MSG_CONFIG_GET)		\
-	X(APP_MSG_AGPS_NEEDED)		\
-	X(APP_MSG_SHUTDOWN_READY)	\
-	X(APP_MSG_ERROR)
+/* Forward declaration of data type used in messages sent over Zbus channel. */
+struct app_msg;
 
+#define APP_MSG_CHAN		app_msg_chan
+#define APP_MSG_PAYLOAD_TYPE	struct app_msg
+#define APP_MSG_NO_PAYLOAD	struct app_msg
+
+/* Defining application messages. */
+#define APP_MSG_TYPES							\
+	X(APP_MSG_START, 		APP_MSG_NO_PAYLOAD)		\
+	X(APP_MSG_LTE_CONNECT,		APP_MSG_NO_PAYLOAD)		\
+	X(APP_MSG_LTE_DISCONNECT, 	APP_MSG_NO_PAYLOAD)		\
+	X(APP_MSG_DATA_GET,		APP_MSG_PAYLOAD_TYPE)		\
+	X(APP_MSG_DATA_GET_ALL,		APP_MSG_NO_PAYLOAD)		\
+	X(APP_MSG_CONFIG_GET,		APP_MSG_NO_PAYLOAD)		\
+	X(APP_MSG_AGPS_NEEDED,		APP_MSG_NO_PAYLOAD)		\
+	X(APP_MSG_SHUTDOWN_READY,	APP_MSG_NO_PAYLOAD)		\
+	X(APP_MSG_ERROR,		APP_MSG_PAYLOAD_TYPE)
 
 /** @brief Data types that the application requests samples for in
  *	   @ref app_msg_type APP_MSG_DATA_GET.

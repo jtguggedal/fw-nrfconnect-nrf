@@ -34,8 +34,6 @@
 extern "C" {
 #endif
 
-#undef X
-
 #define MESSAGE_TYPES			\
 		APP_MSG_TYPES		\
 		CLOUD_MSG_TYPES		\
@@ -48,11 +46,14 @@ extern "C" {
 		UTIL_MSG_TYPES
 
 enum module_msg_type {
-#define X(_name)			\
+#define X(_name, _data_type)		\
 	_name,
 	MESSAGE_TYPES
 #undef X
-	MESSAGE_TYPE_COUNT
+	/* Modules can implement private message types with enum value starting from
+	  * MESSAGE_TYPE_PUBLIC_COUNT.
+	 */
+	MESSAGE_TYPE_PUBLIC_COUNT
 };
 
 /**

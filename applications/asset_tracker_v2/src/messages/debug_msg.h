@@ -14,16 +14,24 @@
  */
 
 #include <zephyr/kernel.h>
+#include <zephyr/zbus/zbus.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define DEBUG_MSG_TYPES				\
-	X(DEBUG_MSG_MEMFAULT_DATA_READY)		\
-	X(DEBUG_MSG_QEMU_X86_INITIALIZED)		\
-	X(DEBUG_MSG_QEMU_X86_NETWORK_CONNECTED)		\
-	X(DEBUG_MSG_ERROR)
+/* Forward declaration of data type used in messages sent over Zbus channel. */
+struct debug_msg;
+
+#define DEBUG_MSG_CHAN		debug_msg_chan
+#define DEBUG_MSG_PAYLOAD_TYPE	struct debug_msg
+#define DEBUG_MSG_NO_PAYLOAD	struct debug_msg	/* Zbus docs says union or struct required */
+
+#define DEBUG_MSG_TYPES										\
+	X(DEBUG_MSG_MEMFAULT_DATA_READY, 		DEBUG_MSG_PAYLOAD_TYPE)			\
+	X(DEBUG_MSG_QEMU_X86_INITIALIZED, 		DEBUG_MSG_NO_PAYLOAD)			\
+	X(DEBUG_MSG_QEMU_X86_NETWORK_CONNECTED, 	DEBUG_MSG_NO_PAYLOAD)			\
+	X(DEBUG_MSG_ERROR, 				DEBUG_MSG_PAYLOAD_TYPE)
 
 struct debug_memfault_data {
 	uint8_t *buf;

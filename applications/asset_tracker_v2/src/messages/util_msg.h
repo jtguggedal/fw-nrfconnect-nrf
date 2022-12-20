@@ -13,12 +13,20 @@
  * @{
  */
 
+#include <zephyr/zbus/zbus.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/* Forward declaration of data type used in messages sent over Zbus channel. */
+struct util_msg;
+
+#define UTIL_MSG_CHAN			util_msg_chan
+#define UTIL_MSG_PAYLOAD_TYPE		struct util_msg
+
 #define UTIL_MSG_TYPES	\
-	X(UTIL_MSG_SHUTDOWN_REQUEST)
+	X(UTIL_MSG_SHUTDOWN_REQUEST, SENSOR_MSG_PAYLOAD_TYPE)
 
 /** @brief Shutdown reason included in shutdown requests. */
 enum shutdown_reason {

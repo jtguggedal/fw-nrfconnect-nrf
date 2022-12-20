@@ -13,6 +13,7 @@
  * @{
  */
 
+#include <zephyr/zbus/zbus.h>
 #include <nrf_modem_gnss.h>
 #include <modem/lte_lc.h>
 #if defined(CONFIG_NRF_CLOUD_PGPS)
@@ -23,17 +24,24 @@
 extern "C" {
 #endif
 
-#define LOCATION_MSG_TYPES				\
-	X(LOCATION_MSG_GNSS_DATA_READY)			\
-	X(LOCATION_MSG_DATA_NOT_READY)			\
-	X(LOCATION_MSG_NEIGHBOR_CELLS_DATA_READY)	\
-	X(LOCATION_MSG_TIMEOUT)				\
-	X(LOCATION_MSG_ACTIVE)				\
-	X(LOCATION_MSG_INACTIVE)			\
-	X(LOCATION_MSG_SHUTDOWN_READY)			\
-	X(LOCATION_MSG_AGPS_NEEDED)			\
-	X(LOCATION_MSG_PGPS_NEEDED)			\
-	X(LOCATION_MSG_ERROR_CODE)
+/* Forward declaration of data type used in messages sent over Zbus channel. */
+struct location_msg;
+
+#define LOCATION_MSG_CHAN		location_msg_chan
+#define LOCATION_MSG_PAYLOAD_TYPE	struct location_msg
+#define LOCATION_MSG_NO_PAYLOAD		struct location_msg	/* Zbus docs says union or struct required */
+
+#define LOCATION_MSG_TYPES								\
+	X(LOCATION_MSG_GNSS_DATA_READY, 		LOCATION_MSG_PAYLOAD_TYPE)	\
+	X(LOCATION_MSG_DATA_NOT_READY, 			LOCATION_MSG_PAYLOAD_TYPE)	\
+	X(LOCATION_MSG_NEIGHBOR_CELLS_DATA_READY, 	LOCATION_MSG_PAYLOAD_TYPE)	\
+	X(LOCATION_MSG_TIMEOUT, 			LOCATION_MSG_PAYLOAD_TYPE)	\
+	X(LOCATION_MSG_ACTIVE, 				LOCATION_MSG_PAYLOAD_TYPE)	\
+	X(LOCATION_MSG_INACTIVE, 			LOCATION_MSG_PAYLOAD_TYPE)	\
+	X(LOCATION_MSG_SHUTDOWN_READY, 			LOCATION_MSG_PAYLOAD_TYPE)	\
+	X(LOCATION_MSG_AGPS_NEEDED, 			LOCATION_MSG_PAYLOAD_TYPE)	\
+	X(LOCATION_MSG_PGPS_NEEDED, 			LOCATION_MSG_PAYLOAD_TYPE)	\
+	X(LOCATION_MSG_ERROR_CODE, 			LOCATION_MSG_PAYLOAD_TYPE)
 
 /** @brief Position, velocity and time (PVT) data. */
 struct location_pvt {

@@ -20,6 +20,7 @@ zephyr_include_directories_ifdef(CONFIG_MEMFAULT configuration/memfault)
 
 # Application directories
 add_subdirectory(src/modules)
+add_subdirectory(src/messages)
 
 add_subdirectory_ifdef(CONFIG_SENSOR_MODULE src/ext_sensors)
 add_subdirectory_ifdef(CONFIG_WATCHDOG_APPLICATION src/watchdog)

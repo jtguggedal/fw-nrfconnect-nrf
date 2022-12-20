@@ -6,11 +6,13 @@
 
 #include <zephyr/kernel.h>
 #include <zephyr/types.h>
+
 #include "module_common.h"
 
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_REGISTER(module_common, CONFIG_MODULE_COMMON_LOG_LEVEL);
+
 
 /* List containing metadata on active modules in the application. */
 static sys_slist_t module_list = SYS_SLIST_STATIC_INIT(&module_list);
@@ -151,18 +153,18 @@ uint32_t module_active_count_get(void)
 
 /* Experimental stuff */
 
-static const char *module_msg_type_strings[] = {
-#define X(_type)				\
-		[_type] = STRINGIFY(_type),
+static const char *module_msg_name_strings[] = {
+#define X(_name, _data_type)				\
+		[_name] = STRINGIFY(_name),
 		MESSAGE_TYPES
 #undef X
 };
 
 static const char *msg_type_to_str(enum module_msg_type type)
 {
-	__ASSERT_NO_MSG(type < ARRAY_SIZE(module_msg_type_strings));
+	__ASSERT_NO_MSG(type < ARRAY_SIZE(module_msg_name_strings));
 
-	return module_msg_type_strings[type];
+	return module_msg_name_strings[type];
 }
 
 static char *module_thread_id_to_name(k_tid_t thread_id)

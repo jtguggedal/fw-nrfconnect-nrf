@@ -14,21 +14,29 @@
  */
 
 #include <zephyr/kernel.h>
+#include <zephyr/zbus/zbus.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define SENSOR_MSG_TYPES				\
-	X(SENSOR_MSG_MOVEMENT_ACTIVITY_DETECTED)	\
-	X(SENSOR_MSG_MOVEMENT_INACTIVITY_DETECTED)	\
-	X(SENSOR_MSG_MOVEMENT_IMPACT_DETECTED)		\
-	X(SENSOR_MSG_ENVIRONMENTAL_DATA_READY)		\
-	X(SENSOR_MSG_ENVIRONMENTAL_NOT_SUPPORTED)	\
-	X(SENSOR_MSG_SHUTDOWN_READY)			\
-	X(SENSOR_MSG_ERROR)
-
 #define ACCELEROMETER_AXIS_COUNT 3
+
+/* Forward declaration of data type used in messages sent over Zbus channel. */
+struct sensor_msg;
+
+#define SENSOR_MSG_CHAN			sensor_msg_chan
+#define SENSOR_MSG_PAYLOAD_TYPE		struct sensor_msg
+#define SENSOR_MSG_NO_PAYLOAD		struct sensor_msg	/* Zbus docs says union or struct required */
+
+#define SENSOR_MSG_TYPES								\
+	X(SENSOR_MSG_MOVEMENT_ACTIVITY_DETECTED, 	SENSOR_MSG_NO_PAYLOAD)		\
+	X(SENSOR_MSG_MOVEMENT_INACTIVITY_DETECTED, 	SENSOR_MSG_NO_PAYLOAD)		\
+	X(SENSOR_MSG_MOVEMENT_IMPACT_DETECTED, 		SENSOR_MSG_NO_PAYLOAD)		\
+	X(SENSOR_MSG_ENVIRONMENTAL_DATA_READY, 		SENSOR_MSG_PAYLOAD_TYPE)	\
+	X(SENSOR_MSG_ENVIRONMENTAL_NOT_SUPPORTED, 	SENSOR_MSG_NO_PAYLOAD)		\
+	X(SENSOR_MSG_SHUTDOWN_READY, 			SENSOR_MSG_PAYLOAD_TYPE)	\
+	X(SENSOR_MSG_ERROR, 				SENSOR_MSG_PAYLOAD_TYPE)
 
 /** @brief Structure used to provide environmental data. */
 struct sensor_data {

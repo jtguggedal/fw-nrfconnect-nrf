@@ -14,29 +14,38 @@
  */
 
 #include <zephyr/kernel.h>
+#include <zephyr/zbus/zbus.h>
+
 #include "cloud_codec/cloud_codec.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define DATA_MSG_TYPES				\
-	X(DATA_MSG_DATA_READY)			\
-	X(DATA_MSG_DATA_SEND)			\
-	X(DATA_MSG_DATA_SEND_BATCH)		\
-	X(DATA_MSG_UI_DATA_SEND)		\
-	X(DATA_MSG_UI_DATA_READY)		\
-	X(DATA_MSG_IMPACT_DATA_READY)		\
-	X(DATA_MSG_IMPACT_DATA_SEND)		\
-	X(DATA_MSG_NEIGHBOR_CELLS_DATA_SEND)	\
-	X(DATA_MSG_AGPS_REQUEST_DATA_SEND)	\
-	X(DATA_MSG_CONFIG_INIT)			\
-	X(DATA_MSG_CONFIG_READY)		\
-	X(DATA_MSG_CONFIG_SEND)			\
-	X(DATA_MSG_CONFIG_GET)			\
-	X(DATA_MSG_DATE_TIME_OBTAINED)		\
-	X(DATA_MSG_SHUTDOWN_READY)		\
-	X(DATA_MSG_ERROR)
+/* Forward declaration of data type used in messages sent over Zbus channel. */
+struct data_msg;
+
+#define DATA_MSG_CHAN		data_msg_chan
+#define DATA_MSG_PAYLOAD_TYPE	struct data_msg
+#define DATA_MSG_NO_PAYLOAD	struct data_msg	/* Zbus docs says union or struct required */
+
+#define DATA_MSG_TYPES								\
+	X(DATA_MSG_DATA_READY, 			DATA_MSG_NO_PAYLOAD)		\
+	X(DATA_MSG_DATA_SEND, 			DATA_MSG_PAYLOAD_TYPE)		\
+	X(DATA_MSG_DATA_SEND_BATCH, 		DATA_MSG_PAYLOAD_TYPE)		\
+	X(DATA_MSG_UI_DATA_SEND, 		DATA_MSG_PAYLOAD_TYPE)		\
+	X(DATA_MSG_UI_DATA_READY, 		DATA_MSG_NO_PAYLOAD)		\
+	X(DATA_MSG_IMPACT_DATA_READY, 		DATA_MSG_NO_PAYLOAD)		\
+	X(DATA_MSG_IMPACT_DATA_SEND, 		DATA_MSG_PAYLOAD_TYPE)		\
+	X(DATA_MSG_NEIGHBOR_CELLS_DATA_SEND, 	DATA_MSG_PAYLOAD_TYPE)		\
+	X(DATA_MSG_AGPS_REQUEST_DATA_SEND, 	DATA_MSG_PAYLOAD_TYPE)		\
+	X(DATA_MSG_CONFIG_INIT, 		DATA_MSG_NO_PAYLOAD)		\
+	X(DATA_MSG_CONFIG_READY, 		DATA_MSG_NO_PAYLOAD)		\
+	X(DATA_MSG_CONFIG_SEND, 		DATA_MSG_PAYLOAD_TYPE)		\
+	X(DATA_MSG_CONFIG_GET, 			DATA_MSG_NO_PAYLOAD)		\
+	X(DATA_MSG_DATE_TIME_OBTAINED, 		DATA_MSG_NO_PAYLOAD)		\
+	X(DATA_MSG_SHUTDOWN_READY, 		DATA_MSG_PAYLOAD_TYPE)		\
+	X(DATA_MSG_ERROR, 			DATA_MSG_PAYLOAD_TYPE)
 
 /** @brief Structure that contains a pointer to encoded data. */
 struct data_buffer {

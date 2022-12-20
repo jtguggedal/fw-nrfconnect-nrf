@@ -13,14 +13,22 @@
  * @{
  */
 
+#include <zephyr/zbus/zbus.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define UI_MSG_TYPES		\
-	X(UI_MSG_BUTTON_DATA_READY)	\
-	X(UI_MSG_SHUTDOWN_READY)	\
-	X(UI_MSG_ERROR)
+/* Forward declaration of data type used in messages sent over Zbus channel. */
+struct ui_msg;
+
+#define UI_MSG_CHAN			ui_msg_chan
+#define UI_MSG_PAYLOAD_TYPE		struct ui_msg
+
+#define UI_MSG_TYPES						\
+	X(UI_MSG_BUTTON_DATA_READY, 	UI_MSG_PAYLOAD_TYPE)	\
+	X(UI_MSG_SHUTDOWN_READY, 	UI_MSG_PAYLOAD_TYPE)	\
+	X(UI_MSG_ERROR, 		UI_MSG_PAYLOAD_TYPE)
 
 /** @brief Structure used to provide button data. */
 struct ui_button_data {
