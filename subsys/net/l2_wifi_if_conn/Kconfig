@@ -1,0 +1,12 @@
+# Copyright (c) 2023 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+config L2_WIFI_CONNECTIVITY
+	bool "L2 Wi-Fi Connectivity"
+	depends on NET_CONNECTION_MANAGER
+
+config L2_WIFI_CONN_WQ_STACK_SIZE
+	int
+	default 512
