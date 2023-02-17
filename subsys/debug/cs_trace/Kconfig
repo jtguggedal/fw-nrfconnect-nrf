@@ -1,0 +1,18 @@
+#
+# Copyright (c) 2023 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+config CS_TRACE
+	bool "Enable Corsight trace"
+	help
+	  Enable tracing using Coresight modules such as ETM, ITM and ETB.
+
+if CS_TRACE
+
+config CS_TRACE_SYS_INIT
+	bool "Initialize automatically"
+	default y
+
+endif # CS_TRACE
