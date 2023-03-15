@@ -9,11 +9,13 @@
 #include <modem/lte_lc.h>
 #include <zephyr/net/socket.h>
 #include <dk_buttons_and_leds.h>
+#include <debug/cs_trace.h>
 
 #include <memfault/metrics/metrics.h>
 #include <memfault/ports/zephyr/http.h>
 #include <memfault/core/data_packetizer.h>
 #include <memfault/core/trace_event.h>
+#include <memfault/panics/platform/coredump.h>
 
 #include <zephyr/logging/log.h>
 
@@ -176,6 +178,16 @@ static void handle_lte_connection_started(void)
 	 * CONFIG_MEMFAULT_HTTP_PERIODIC_UPLOAD_INTERVAL_SECS.
 	 */
 	memfault_zephyr_port_post_data();
+}
+
+
+static uint32_t etb_buf[ETB_BUFFER_SIZE / 4];
+
+void memfault_platform_fault_handler(const sMfltRegState *regs,
+                                     eMemfaultRebootReason reason) {
+	etm_stop();
+	etb_stop();
+	etb_data_get(etb_buf, ARRAY_SIZE(etb_buf));
 }
 
 void main(void)
