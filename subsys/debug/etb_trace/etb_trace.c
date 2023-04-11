@@ -7,6 +7,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/init.h>
 #include <debug/etb_trace.h>
+#include <nrfx_power.h>
 
 #define LAR_OFFSET			0xFB0
 #define LSR_OFFSET			0xFB4
@@ -74,6 +75,20 @@
 static volatile uint32_t etm_trcconfigr = BIT(3);
 /* Set trace ID to 0x10  */
 static volatile uint32_t etm_trctraceidr = 0x10;
+
+static void sleep_handler(nrfx_power_sleep_evt_t event) {
+	if (event == NRFX_POWER_SLEEP_EVT_ENTER) {
+		NRF_TAD_S->ENABLE = 0;
+	} else {
+		NRF_TAD_S->ENABLE = TAD_ENABLE_ENABLE_Msk;
+	}
+}
+
+static nrfx_power_sleepevt_config_t sleepevt_config = {
+	.en_enter = true,
+	.en_exit = true,
+	.handler = sleep_handler,
+};
 
 static void etm_init(void)
 {
@@ -253,6 +268,7 @@ void etb_trace_stop(void)
 	itm_stop();
 	etm_stop();
 	etb_stop();
+	nrfx_power_sleepevt_disable();
 }
 
 size_t etb_data_get(volatile uint32_t *buf, size_t buf_size)
@@ -285,5 +301,16 @@ static int init(const struct device *dev)
 	return 0;
 }
 
+
+static int init_power_saving(const struct device *dev)
+{
+	ARG_UNUSED(dev);
+
+	nrfx_power_sleepevt_init(&sleepevt_config);
+	nrfx_power_sleepevt_enable(&sleepevt_config);
+	return 0;
+}
+
 SYS_INIT(init, EARLY, 0);
+SYS_INIT(init_power_saving, POST_KERNEL, 0);
 #endif /* defined (CONFIG_ETB_TRACE_SYS_INIT) */
