@@ -117,12 +117,12 @@ static void button_handler(uint32_t button_states, uint32_t has_changed)
 	uint32_t buttons_pressed = has_changed & button_states;
 
 	if (buttons_pressed & DK_BTN1_MSK) {
-		LOG_WRN("Stack overflow will now be triggered");
+		// LOG_WRN("Stack overflow will now be triggered");
 		fib(10000);
 	} else if (buttons_pressed & DK_BTN2_MSK) {
 		volatile uint32_t i;
 
-		LOG_WRN("Division by zero will now be triggered");
+		// LOG_WRN("Division by zero will now be triggered");
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdiv-by-zero"
 		i = 1 / 0;
