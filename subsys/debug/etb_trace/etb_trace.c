@@ -118,34 +118,6 @@ static void etm_stop(void)
 	SET_REG(ETM_TRCPRGCTLR, 0);
 }
 
-static void itm_init(void)
-{
-	CS_UNLOCK(ITM_BASE_ADDR);
-
-	/* Configure ITM */
-	SET_REG(ITM_TCR, 0x0001000D);
-
-	/* Enable ITM */
-	SET_REG(ITM_TER, 0x1);
-
-	CS_LOCK(ITM_BASE_ADDR);
-}
-
-static void itm_stop(void)
-{
-	CS_UNLOCK(ITM_BASE_ADDR);
-
-	SET_REG(ITM_TER, 0x0);
-
-	CS_LOCK(ITM_BASE_ADDR);
-}
-
-static void dwt_init(void)
-{
-	/* Set cycle count to zero */
-	SET_REG(DWT_CCYCCNT, 0x0);
-}
-
 static void atb_init(void)
 {
 	/* ATB replicator */
@@ -175,7 +147,7 @@ static void atb_init(void)
 	/* Set priority 3 for port 3 */
 	SET_REG(ATB_2_PRIO, 0x00003000UL);
 
-	/* Enable ETM/ITM traces on port 3, and set hold time to 4 transactions */
+	/* Enable ETM traces on port 3, and set hold time to 4 transactions */
 	SET_REG(ATB_2_CTL,  0x00000308UL);
 
 	CS_LOCK(ATB_2_BASE_ADDR);
@@ -193,17 +165,6 @@ static void etb_init(void)
 
 	/* Enable formatter in continuous mode */
 	SET_REG(ETB_FFCR, BIT(1) | BIT(0));
-
-	/* Reset write pointer */
-	SET_REG(ETB_RWP, 0);
-
-	/* Clear memory */
-	for (size_t i = 0; i < 512; i++) {
-		SET_REG(ETB_RWD, 0);
-	}
-
-	/* Reset write pointer */
-	SET_REG(ETB_RWP, 0);
 
 	/* Enable ETB */
 	SET_REG(ETB_CTL, 0x1);
@@ -226,14 +187,8 @@ static void etb_stop(void)
 	CS_LOCK(ETB_BASE_ADDR);
 }
 
-static void timestamp_generator_init(void)
-{
-	SET_REG(TIMESTAMP_GENERATOR_CNCTR, BIT(0));
-}
-
 static void debug_init(void)
 {
-	NRF_TAD_S->ENABLE = TAD_ENABLE_ENABLE_Msk;
 	NRF_TAD_S->TASKS_CLOCKSTART = TAD_TASKS_CLOCKSTART_TASKS_CLOCKSTART_Msk;
 }
 
@@ -242,15 +197,11 @@ void etb_trace_start(void)
 	debug_init();
 	atb_init();
 	etb_init();
-	timestamp_generator_init();
 	etm_init();
-	itm_init();
-	dwt_init();
 }
 
 void etb_trace_stop(void)
 {
-	itm_stop();
 	etm_stop();
 	etb_stop();
 }
@@ -280,7 +231,7 @@ static int init(const struct device *dev)
 {
 	ARG_UNUSED(dev);
 
-	etb_trace_start();
+	etb_trace_init();
 
 	return 0;
 }
