@@ -5,3 +5,4 @@
 #
 
 zephyr_sources(etb_trace.c)
+zephyr_sources_ifdef(CONFIG_ETB_TRACE_PM etb_trace_pm.c)

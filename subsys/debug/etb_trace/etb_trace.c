@@ -231,7 +231,7 @@ static int init(const struct device *dev)
 {
 	ARG_UNUSED(dev);
 
-	etb_trace_init();
+	etb_trace_start();
 
 	return 0;
 }
