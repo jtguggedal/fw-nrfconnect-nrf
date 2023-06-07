@@ -1,14 +1,14 @@
 sample:
   name: Download sample
 tests:
-  sample.nrf9160.download.tfm:
+  sample.net.download.tfm:
     build_only: true
     extra_args: OVERLAY_CONFIG="overlay-tfm.conf"
     integration_platforms:
       - nrf9160dk_nrf9160_ns
     platform_allow: nrf9160dk_nrf9160_ns
     tags: ci_build
-  sample.nrf9160.download_client:
+  sample.net.download_client:
     build_only: true
     extra_configs:
       - CONFIG_SHELL=y
