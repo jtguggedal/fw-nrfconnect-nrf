@@ -11,4 +11,5 @@ project(download)
 
 # NORDIC SDK APP START
 target_sources(app PRIVATE src/main.c)
+target_sources(app PRIVATE src/file_storage.c)
 # NORDIC SDK APP END

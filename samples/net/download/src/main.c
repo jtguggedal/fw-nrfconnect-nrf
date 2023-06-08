@@ -18,6 +18,14 @@
 #include <zephyr/net/tls_credentials.h>
 #endif
 
+extern int file_storage_init(void);
+extern int file_storage_read(uint8_t *const buf, const size_t buf_size);
+extern int file_storage_write(const uint8_t *const buf, const size_t buf_size);
+extern int file_storage_write_stream_start(void);
+extern int file_storage_write_stream_stop(void);
+extern int file_storage_write_stream_fragment(const uint8_t *const buf, const size_t buf_size);
+extern void file_storage_lsdir(void);
+
 #define URL CONFIG_SAMPLE_FILE_URL
 #define SEC_TAG CONFIG_SAMPLE_SEC_TAG
 
@@ -186,18 +194,26 @@ static int callback(const struct download_client_evt *event)
 		if (file_size) {
 			progress_print(downloaded, file_size);
 		} else {
-			printk("\r[ %d bytes ] ", downloaded);
+			printk("\r[ %d bytes ] \n", downloaded);
 		}
 
+		int rc = file_storage_write_stream_fragment(event->fragment.buf, event->fragment.len);
+		if (rc < 0) {
+			printk("Failed to store fragment, error: %d\n", rc);
+		} else {
+			printk("Stored fragment of size %d to file\n", rc);
+		}
 #if CONFIG_SAMPLE_COMPUTE_HASH
-		mbedtls_sha256_update(&sha256_ctx,
-			event->fragment.buf, event->fragment.len);
+		mbedtls_sha256_update(&sha256_ctx, event->fragment.buf, event->fragment.len);
 #endif
 		return 0;
 
 	case DOWNLOAD_CLIENT_EVT_DONE:
 		ms_elapsed = k_uptime_delta(&ref_time);
 		speed = ((float)file_size / ms_elapsed) * MSEC_PER_SEC;
+
+		(void)file_storage_write_stream_stop();
+
 		printk("\nDownload completed in %lld ms @ %d bytes per sec, total %d bytes\n",
 		       ms_elapsed, speed, downloaded);
 
@@ -221,10 +237,13 @@ static int callback(const struct download_client_evt *event)
 #endif /* CONFIG_SAMPLE_COMPUTE_HASH */
 
 		(void)conn_mgr_if_disconnect(net_if);
+		file_storage_lsdir();
 		printk("Bye\n");
 		return 0;
 
 	case DOWNLOAD_CLIENT_EVT_ERROR:
+		(void)file_storage_write_stream_stop();
+
 		printk("Error %d during download\n", event->error);
 		if (event->error == -ECONNRESET) {
 			/* With ECONNRESET, allow library to attempt a reconnect by returning 0 */
@@ -235,6 +254,7 @@ static int callback(const struct download_client_evt *event)
 		}
 		break;
 	case DOWNLOAD_CLIENT_EVT_CLOSED:
+		(void)file_storage_write_stream_stop();
 		printk("Socket closed\n");
 		break;
 	}
@@ -245,6 +265,11 @@ static int callback(const struct download_client_evt *event)
 int main(void)
 {
 	int err;
+
+	if (file_storage_init()) {
+		printk("EXIT\n");
+		return 0;
+	}
 
 	printk("Download client sample started\n");
 
@@ -305,9 +330,21 @@ int main(void)
 
 	ref_time = k_uptime_get();
 
+	err = file_storage_write_stream_start();
+	if (err) {
+		printk("Failed to start write stream: %d\n", err);
+		return 0;
+	}
+
 	err = download_client_get(&downloader, URL, &config, URL, STARTING_OFFSET);
 	if (err) {
 		printk("Failed to start the downloader, err %d", err);
+
+		err = file_storage_write_stream_stop();
+		if (err) {
+			printk("Failed to stop write stream: %d\n", err);
+		}
+
 		return 0;
 	}
 
