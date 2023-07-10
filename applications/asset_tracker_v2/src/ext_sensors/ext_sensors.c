@@ -20,6 +20,31 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(ext_sensors, CONFIG_EXTERNAL_SENSORS_LOG_LEVEL);
 
+
+struct env_sensor {
+	enum sensor_channel channel;
+	const struct device *dev;
+	struct k_spinlock lock;
+};
+
+static struct env_sensor temp_sensor = {
+	.channel = SENSOR_CHAN_AMBIENT_TEMP,
+	.dev = DEVICE_DT_GET(DT_ALIAS(temp_sensor)),
+
+};
+
+static struct env_sensor humid_sensor = {
+	.channel = SENSOR_CHAN_HUMIDITY,
+	.dev = DEVICE_DT_GET(DT_ALIAS(humidity_sensor)),
+};
+
+static struct env_sensor press_sensor = {
+	.channel = SENSOR_CHAN_PRESS,
+	.dev = DEVICE_DT_GET(DT_ALIAS(pressure_sensor)),
+};
+
+#if defined(CONFIG_ADXL362)
+
 /* Convert to s/m2 depending on the maximum measured range used for adxl362. */
 #if IS_ENABLED(CONFIG_ADXL362_ACCEL_RANGE_2G)
 #define ADXL362_RANGE_MAX_M_S2 19.6133
@@ -53,36 +78,6 @@ LOG_MODULE_REGISTER(ext_sensors, CONFIG_EXTERNAL_SENSORS_LOG_LEVEL);
  */
 double threshold = ADXL362_RANGE_MAX_M_S2;
 
-struct env_sensor {
-	enum sensor_channel channel;
-	const struct device *dev;
-	struct k_spinlock lock;
-};
-
-static struct env_sensor temp_sensor = {
-	.channel = SENSOR_CHAN_AMBIENT_TEMP,
-	.dev = DEVICE_DT_GET(DT_ALIAS(temp_sensor)),
-
-};
-
-static struct env_sensor humid_sensor = {
-	.channel = SENSOR_CHAN_HUMIDITY,
-	.dev = DEVICE_DT_GET(DT_ALIAS(humidity_sensor)),
-};
-
-static struct env_sensor press_sensor = {
-	.channel = SENSOR_CHAN_PRESS,
-	.dev = DEVICE_DT_GET(DT_ALIAS(pressure_sensor)),
-};
-
-#if defined(CONFIG_BME68X_IAQ)
-static struct env_sensor iaq_sensor = {
-	.channel = SENSOR_CHAN_IAQ,
-	.dev = DEVICE_DT_GET(DT_ALIAS(iaq_sensor)),
-
-};
-#endif
-
 /** Sensor struct for the low-power accelerometer */
 static struct env_sensor accel_sensor_lp = {
 	.channel = SENSOR_CHAN_ACCEL_XYZ,
@@ -98,6 +93,7 @@ static struct sensor_trigger adxl362_sensor_trigger_stationary = {
 		.chan = SENSOR_CHAN_ACCEL_XYZ,
 		.type = SENSOR_TRIG_STATIONARY
 };
+#endif /* defined(CONFIG_ADXL362) */
 
 #if defined(CONFIG_EXTERNAL_SENSORS_IMPACT_DETECTION)
 static struct sensor_trigger adxl372_sensor_trigger = {
@@ -109,10 +105,11 @@ static struct env_sensor accel_sensor_hg = {
 	.channel = SENSOR_CHAN_ACCEL_XYZ,
 	.dev = DEVICE_DT_GET(DT_ALIAS(impact_sensor)),
 };
-#endif
+#endif /* defined(CONFIG_EXTERNAL_SENSORS_IMPACT_DETECTION) */
 
 static ext_sensor_handler_t evt_handler;
 
+#if defined(CONFIG_ADXL362)
 static void accelerometer_trigger_handler(const struct device *dev,
 					  const struct sensor_trigger *trig)
 {
@@ -153,6 +150,8 @@ static void accelerometer_trigger_handler(const struct device *dev,
 		LOG_ERR("Unknown trigger: %d", trig->type);
 	}
 }
+#endif /* defined(CONFIG_ADXL362) */
+
 
 #if defined(CONFIG_EXTERNAL_SENSORS_IMPACT_DETECTION)
 static void impact_trigger_handler(const struct device *dev,
@@ -190,7 +189,7 @@ static void impact_trigger_handler(const struct device *dev,
 		LOG_ERR("Unknown trigger");
 	}
 }
-#endif
+#endif /* defined(CONFIG_EXTERNAL_SENSORS_IMPACT_DETECTION) */
 
 int ext_sensors_init(ext_sensor_handler_t handler)
 {
@@ -230,11 +229,13 @@ int ext_sensors_init(ext_sensor_handler_t handler)
 		evt_handler(&evt);
 	}
 
+#if defined(CONFIG_ADXL362)
 	if (!device_is_ready(accel_sensor_lp.dev)) {
 		LOG_ERR("Low-power accelerometer device is not ready");
 		evt.type = EXT_SENSOR_EVT_ACCELEROMETER_ERROR;
 		evt_handler(&evt);
 	}
+#endif /* defined(CONFIG_ADXL362) */
 
 #if defined(CONFIG_EXTERNAL_SENSORS_IMPACT_DETECTION)
 	if (!device_is_ready(accel_sensor_hg.dev)) {
@@ -250,7 +251,7 @@ int ext_sensors_init(ext_sensor_handler_t handler)
 			return err;
 		}
 	}
-#endif
+#endif  /* defined(CONFIG_EXTERNAL_SENSORS_IMPACT_DETECTION) */
 	return 0;
 }
 
@@ -385,7 +386,9 @@ int ext_sensors_air_quality_get(uint16_t *ext_bsec_air_quality)
 
 int ext_sensors_accelerometer_threshold_set(double threshold, bool upper)
 {
-	int err, input_value;
+	int err = 0;
+#if defined(CONFIG_ADXL362)
+	int input_value;
 	double range_max_m_s2 = ADXL362_RANGE_MAX_M_S2;
 	struct ext_sensor_evt evt = {0};
 
@@ -429,12 +432,15 @@ int ext_sensors_accelerometer_threshold_set(double threshold, bool upper)
 		evt_handler(&evt);
 		return err;
 	}
-	return 0;
+#endif /* defined(CONFIG_ADXL362) */
+	return err;
 }
 
 int ext_sensors_inactivity_timeout_set(double inact_time)
 {
-	int err, inact_time_decimal;
+	int err = 0;
+#if defined(CONFIG_ADXL362)
+	int inact_time_decimal;
 	struct ext_sensor_evt evt = {0};
 
 	if (inact_time > ADXL362_TIMEOUT_MAX_S || inact_time < 0) {
@@ -462,12 +468,14 @@ int ext_sensors_inactivity_timeout_set(double inact_time)
 		evt_handler(&evt);
 		return err;
 	}
-	return 0;
+#endif /* defined(CONFIG_ADXL362) */
+	return err;
 }
 
 int ext_sensors_accelerometer_trigger_callback_set(bool enable)
 {
-	int err;
+	int err = 0;
+#if defined(CONFIG_ADXL362)
 	struct ext_sensor_evt evt = {0};
 
 	sensor_trigger_handler_t handler = enable ? accelerometer_trigger_handler : NULL;
@@ -486,5 +494,6 @@ error:
 		accel_sensor_lp.dev->name, err);
 	evt.type = EXT_SENSOR_EVT_ACCELEROMETER_ERROR;
 	evt_handler(&evt);
+#endif /* defined(CONFIG_ADXL362) */
 	return err;
 }
