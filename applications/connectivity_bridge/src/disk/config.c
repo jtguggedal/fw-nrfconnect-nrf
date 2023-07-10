@@ -109,6 +109,7 @@ static struct cfg_option configs[] = {
 #undef X
 };
 
+// TODO
 static const char file_contents_header[] =
 "==========================================\r\n"
 "  Nordic Thingy:91 Configuration options\r\n"
