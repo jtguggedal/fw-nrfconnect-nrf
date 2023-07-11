@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Nordic Semiconductor ASA
+ * Copyright (c) 2023 Nordic Semiconductor ASA
  *
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
@@ -15,9 +15,9 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_DECLARE(app_lwm2m, CONFIG_APP_LOG_LEVEL);
 
-#if defined(CONFIG_BOARD_THINGY91_NRF9160_NS) && defined(CONFIG_UI_LED_USE_PWM)
+#if (defined(CONFIG_BOARD_THINGY91_NRF9160_NS) || defined(CONFIG_BOARD_THINGY91X_NRF9161_NS)) && defined(CONFIG_UI_LED_USE_PWM)
 #define APP_TYPE	"RGB PWM LED controller"
-#elif defined(CONFIG_BOARD_THINGY91_NRF9160_NS)
+#elif defined(CONFIG_BOARD_THINGY91_NRF9160_NS) || defined(CONFIG_BOARD_THINGY91X_NRF9161_NS)
 #define APP_TYPE	"RGB GPIO LED controller"
 #elif defined(CONFIG_BOARD_NRF9160DK_NRF9160_NS) && defined(CONFIG_UI_LED_USE_PWM)
 #define APP_TYPE	"PWM LED controller"

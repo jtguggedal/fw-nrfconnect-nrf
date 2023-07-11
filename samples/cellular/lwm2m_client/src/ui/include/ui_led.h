@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021 Nordic Semiconductor ASA
+ * Copyright (c) 2023 Nordic Semiconductor ASA
  *
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
@@ -13,7 +13,7 @@
 extern "C" {
 #endif
 
-#if defined(CONFIG_BOARD_THINGY91_NRF9160_NS)
+#if defined(CONFIG_BOARD_THINGY91_NRF9160_NS) || defined(CONFIG_BOARD_THINGY91X_NRF9161_NS)
 #define NUM_LEDS	3
 #elif defined(CONFIG_BOARD_NRF9160DK_NRF9160_NS) || defined(CONFIG_BOARD_NRF9161DK_NRF9161_NS)
 #if defined(CONFIG_UI_LED_USE_PWM)
