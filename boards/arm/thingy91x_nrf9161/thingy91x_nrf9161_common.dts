@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 #include "thingy91x_nrf9161_common-pinctrl.dtsi"
+#include <dt-bindings/regulator/npm1300.h>
+#include <dt-bindings/regulator/npm6001.h>
 
 / {
 	model = "Nordic Thingy91 nRF9161";
@@ -102,17 +104,81 @@
 	pinctrl-0 = <&i2c2_default>;
 	pinctrl-1 = <&i2c2_sleep>;
 	pinctrl-names = "default", "sleep";
+
 	bme680: bme680@76 {
 		compatible = "bosch,bme680";
 		reg = <0x76>;
 	};
+
 	pmic_main: npm1300@6b {
 		compatible = "nordic,npm1300";
 		reg = <0x6b>;
+
+		gpios_pmic: gpios {
+			compatible = "nordic,npm1300-gpio";
+			gpio-controller;
+			#gpio-cells = <2>;
+			ngpios = <5>;
+			/* GPIO1 switches power to the short range RF front end */
+			ldsw_rf_fe_sr_en: GPIO1 {
+				gpio-hog;
+				gpios = <1 GPIO_ACTIVE_HIGH>;
+				output-high;
+			};
+		};
+
+		regulators {
+			compatible = "nordic,npm1300-regulator";
+			/* Main 3.3 V regulator, enabled by GPIO2 (power switch) */
+			reg_3v3: BUCK2 {
+				regulator-min-microvolt = <3300000>;
+				regulator-max-microvolt = <3300000>;
+				enable-gpios = <&gpios_pmic 2 GPIO_ACTIVE_HIGH>;
+			};
+			/* LDO1 is used as a load switch pulling the nPM60 enable line to VSYS */
+			ldsw_nPM60_en: LDO1 {
+				regulator-allowed-modes = <NPM1300_LDSW_MODE_LDSW>;
+				regulator-boot-on;
+			};
+			/* LDO2 is used as a load switch for sensor power supply */
+			ldsw_sensors: LDO2 {
+				regulator-allowed-modes = <NPM1300_LDSW_MODE_LDSW>;
+				regulator-boot-on;
+			};
+		};
+
+		charger {
+			compatible = "nordic,npm1300-charger";
+			vbus-limit-microamp = <500000>;
+			/* Battery specs from LiPol LP803448 datasheet (Dwg. nr. FD_3245_70) */
+			term-microvolt = <4200000>;
+			current-microamp = <675000>; /* 0.5C charging current */
+			dischg-limit-microamp = <1340000>; /* Maximum value for PMIC */
+			thermistor-cold-millidegrees = <0>;
+			thermistor-cool-millidegrees = <0>;
+			thermistor-warm-millidegrees = <45000>;
+			thermistor-hot-millidegrees = <45000>;
+			thermistor-ohms = <10000>;
+			thermistor-beta = <3435>;
+			charging-enable;
+		};
 	};
+
 	pmic_wifi: npm6001@70 {
-		compatible = "nordic,npm6001-regulator";
+		compatible = "nordic,npm6001";
+		label = "nPM6001";
 		reg = <0x70>;
+
+		regulators {
+			compatible = "nordic,npm6001-regulator";
+			/* Dedicated 3.3 V regulator for nRF70 */
+			reg_wifi: BUCK3 {
+				regulator-min-microvolt = <3300000>;
+				regulator-max-microvolt = <3300000>;
+				regulator-initial-mode = <NPM6001_MODE_PWM>;
+				regulator-boot-on;
+			};
+		};
 	};
 	eeprom: at24@7 {
 		compatible = "atmel,at24";
