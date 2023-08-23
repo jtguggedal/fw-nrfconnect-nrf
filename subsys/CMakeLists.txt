@@ -75,3 +75,5 @@ add_subdirectory_ifdef(CONFIG_NRF_802154_RADIO_DRIVER ieee802154)
 add_subdirectory_ifdef(CONFIG_NRF_DM dm)
 add_subdirectory_ifdef(CONFIG_EMDS emds)
 add_subdirectory_ifdef(CONFIG_NET_CORE_MONITOR net_core_monitor)
+
+add_subdirectory_ifdef(CONFIG_DAP dap)
