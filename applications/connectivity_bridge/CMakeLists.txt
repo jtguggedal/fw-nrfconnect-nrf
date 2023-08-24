@@ -16,6 +16,7 @@ target_sources(app PRIVATE src/main.c)
 # Include application events and disk files
 zephyr_library_include_directories(
   src/events
+  ${NRF_DIR}/samples/dap/src
   )
 
 # Application sources

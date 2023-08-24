@@ -18,3 +18,6 @@ target_sources_ifdef(CONFIG_BRIDGE_BLE_ENABLE
 
 target_sources_ifdef(CONFIG_BRIDGE_MSC_ENABLE
 		     app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/fs_handler.c)
+
+target_sources_ifdef(CONFIG_DAP
+		     app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/dap_handler.c ${NRF_DIR}/samples/dap/src/cmsis_dap_usb.c)

@@ -71,6 +71,14 @@ source "subsys/logging/Kconfig.template.log_config"
 
 endif
 
+if DAP
+
+config DAP_HANDLER_STACK_SIZE
+	int "DAP handler stack size"
+	default 1024
+
+endif
+
 config BRIDGE_BUF_SIZE
 	int "Transport interface buffer size"
 	default 4096
