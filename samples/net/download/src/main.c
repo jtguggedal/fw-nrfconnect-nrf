@@ -287,12 +287,6 @@ int main(void)
 	net_mgmt_init_event_callback(&conn_cb, connectivity_event_handler, CONN_LAYER_EVENT_MASK);
 	net_mgmt_add_event_callback(&conn_cb);
 
-	err = net_if_up(net_if);
-	if (err) {
-		printk("net_if_up, error: %d\n", err);
-		return err;
-	}
-
 #if CONFIG_SAMPLE_SECURE_SOCKET
 	/* Provision certificates before connecting to the network */
 	err = cert_provision();
