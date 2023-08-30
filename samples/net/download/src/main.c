@@ -7,6 +7,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <zephyr/kernel.h>
+#if defined(CLOCK_FEATURE_HFCLK_DIVIDE_PRESENT) || NRF_CLOCK_HAS_HFCLK192M
+#include <nrfx_clock.h>
+#endif
 #include <zephyr/net/socket.h>
 #include <zephyr/net/net_if.h>
 #include <zephyr/net/conn_mgr_connectivity.h>
@@ -192,16 +195,16 @@ static int callback(const struct download_client_evt *event)
 	case DOWNLOAD_CLIENT_EVT_FRAGMENT:
 		downloaded += event->fragment.len;
 		if (file_size) {
-			progress_print(downloaded, file_size);
+			//progress_print(downloaded, file_size);
 		} else {
-			printk("\r[ %d bytes ] \n", downloaded);
+			//printk("\r[ %d bytes ] \n", downloaded);
 		}
 
 		int rc = file_storage_write_stream_fragment(event->fragment.buf, event->fragment.len);
 		if (rc < 0) {
 			printk("Failed to store fragment, error: %d\n", rc);
 		} else {
-			printk("Stored fragment of size %d to file\n", rc);
+			//printk("Stored fragment of size %d to file\n", rc);
 		}
 #if CONFIG_SAMPLE_COMPUTE_HASH
 		mbedtls_sha256_update(&sha256_ctx, event->fragment.buf, event->fragment.len);
@@ -236,7 +239,7 @@ static int callback(const struct download_client_evt *event)
 #endif /* CONFIG_SAMPLE_COMPARE_HASH */
 #endif /* CONFIG_SAMPLE_COMPUTE_HASH */
 
-		(void)conn_mgr_if_disconnect(net_if);
+		//(void)conn_mgr_if_disconnect(net_if);
 		file_storage_lsdir();
 		printk("Bye\n");
 		return 0;
@@ -248,7 +251,7 @@ static int callback(const struct download_client_evt *event)
 		if (event->error == -ECONNRESET) {
 			/* With ECONNRESET, allow library to attempt a reconnect by returning 0 */
 		} else {
-			(void)conn_mgr_if_disconnect(net_if);
+			//(void)conn_mgr_if_disconnect(net_if);
 			/* Stop download */
 			return -1;
 		}
@@ -265,6 +268,14 @@ static int callback(const struct download_client_evt *event)
 int main(void)
 {
 	int err;
+
+#if defined(CLOCK_FEATURE_HFCLK_DIVIDE_PRESENT) || NRF_CLOCK_HAS_HFCLK192M
+	/* For now hardcode to 128MHz */
+	nrfx_clock_divider_set(NRF_CLOCK_DOMAIN_HFCLK,
+			       NRF_CLOCK_HFCLK_DIV_1);
+#endif
+	printk("Starting %s with CPU frequency: %d MHz\n", CONFIG_BOARD, SystemCoreClock/MHZ(1));
+
 
 	if (file_storage_init()) {
 		printk("EXIT\n");
