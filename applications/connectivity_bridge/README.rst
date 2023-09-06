@@ -7,7 +7,7 @@ Connectivity bridge
    :local:
    :depth: 2
 
-The Connectivity bridge application demonstrates the bridge functionality for the Thingy:91 hardware.
+The Connectivity bridge application demonstrates the bridge functionality for the Thingy:91 (X) hardware.
 
 Additionally, the application also provides an option of adding the Bluetooth® functionality by making use of the :ref:`nus_service_readme`.
 
@@ -28,7 +28,7 @@ The mapping of the UART interfaces is done in the following way:
    * - UART_1
      - CDC_1
 
-See :ref:`thingy91_serialports` for information on the baud rate configuration for Thingy:91 serial ports.
+See :ref:`thingy91_serialports` for information on the baud rate configuration for Thingy:91 (X) serial ports.
 
 The application adds the functionality of a USB Mass Storage device, which contains several utility files such as a :file:`README.txt` file.
 
