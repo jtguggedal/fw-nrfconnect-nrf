@@ -200,12 +200,12 @@ static int callback(const struct download_client_evt *event)
 			//printk("\r[ %d bytes ] \n", downloaded);
 		}
 
-		int rc = file_storage_write_stream_fragment(event->fragment.buf, event->fragment.len);
-		if (rc < 0) {
-			printk("Failed to store fragment, error: %d\n", rc);
-		} else {
-			//printk("Stored fragment of size %d to file\n", rc);
-		}
+		// int rc = file_storage_write_stream_fragment(event->fragment.buf, event->fragment.len);
+		// if (rc < 0) {
+		// 	printk("Failed to store fragment, error: %d\n", rc);
+		// } else {
+		// 	//printk("Stored fragment of size %d to file\n", rc);
+		// }
 #if CONFIG_SAMPLE_COMPUTE_HASH
 		mbedtls_sha256_update(&sha256_ctx, event->fragment.buf, event->fragment.len);
 #endif
@@ -215,7 +215,7 @@ static int callback(const struct download_client_evt *event)
 		ms_elapsed = k_uptime_delta(&ref_time);
 		speed = ((float)file_size / ms_elapsed) * MSEC_PER_SEC;
 
-		(void)file_storage_write_stream_stop();
+		// (void)file_storage_write_stream_stop();
 
 		printk("\nDownload completed in %lld ms @ %d bytes per sec, total %d bytes\n",
 		       ms_elapsed, speed, downloaded);
@@ -240,12 +240,12 @@ static int callback(const struct download_client_evt *event)
 #endif /* CONFIG_SAMPLE_COMPUTE_HASH */
 
 		//(void)conn_mgr_if_disconnect(net_if);
-		file_storage_lsdir();
+		// file_storage_lsdir();
 		printk("Bye\n");
 		return 0;
 
 	case DOWNLOAD_CLIENT_EVT_ERROR:
-		(void)file_storage_write_stream_stop();
+		// (void)file_storage_write_stream_stop();
 
 		printk("Error %d during download\n", event->error);
 		if (event->error == -ECONNRESET) {
@@ -257,7 +257,7 @@ static int callback(const struct download_client_evt *event)
 		}
 		break;
 	case DOWNLOAD_CLIENT_EVT_CLOSED:
-		(void)file_storage_write_stream_stop();
+		// (void)file_storage_write_stream_stop();
 		printk("Socket closed\n");
 		break;
 	}
@@ -335,11 +335,11 @@ int main(void)
 
 	ref_time = k_uptime_get();
 
-	err = file_storage_write_stream_start();
-	if (err) {
-		printk("Failed to start write stream: %d\n", err);
-		return 0;
-	}
+	// err = file_storage_write_stream_start();
+	// if (err) {
+	// 	printk("Failed to start write stream: %d\n", err);
+	// 	return 0;
+	// }
 
 	err = download_client_get(&downloader, URL, &config, URL, STARTING_OFFSET);
 	if (err) {
