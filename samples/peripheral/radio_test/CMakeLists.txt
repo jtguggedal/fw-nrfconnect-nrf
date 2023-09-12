@@ -6,6 +6,11 @@
 
 cmake_minimum_required(VERSION 3.20.0)
 
+# Set USB for Thingy:91 X, since USB is 
+if("${BOARD}" STREQUAL "thingy91x_nrf5340_cpunet")
+  set(CONFIG_RADIO_TEST_USB y)
+endif()
+
 if(DEFINED SHIELD AND "${BOARD}" STREQUAL "nrf5340dk_nrf5340_cpunet")
   string(REPLACE " " ";" SHIELD_LIST "${SHIELD}")
   foreach(sh IN LISTS SHIELD_LIST)
