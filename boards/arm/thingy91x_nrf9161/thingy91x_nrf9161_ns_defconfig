@@ -38,5 +38,3 @@ CONFIG_SPI_NOR_FLASH_LAYOUT_PAGE_SIZE=4096
 
 # Disable entropy driver, as it's not yet implemented for nRF9161
 CONFIG_ENTROPY_NRF5_RNG=n
-
-CONFIG_BOOTLOADER_MCUBOOT=y

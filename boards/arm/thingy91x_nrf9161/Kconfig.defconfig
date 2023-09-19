@@ -67,6 +67,9 @@ if (!IS_SECURE_BOOTLOADER && !MCUBOOT)
 config SECURE_BOOT
 	default y
 
+config BOOTLOADER_MCUBOOT
+	default y
+
 # Please do not use these keys for own custom boards!
 # These are meant as examples and therefore public.
 # The documentation of the nRF Secure Immutable Bootloader and MCUBoot detail on how

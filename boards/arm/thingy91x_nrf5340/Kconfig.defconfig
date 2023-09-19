@@ -96,3 +96,17 @@ config BT_CTLR
 	default y if BT
 
 endif # BOARD_THINGY91X_NRF5340_CPUNET
+
+# check if we are building for any bootloader
+if (!IS_SECURE_BOOTLOADER && !MCUBOOT)
+
+config SECURE_BOOT
+	default y
+
+config BOOTLOADER_MCUBOOT
+	default y if (BOARD_THINGY91X_NRF5340_CPUAPP || BOARD_THINGY91X_NRF5340_CPUAPP_NS)
+
+config SB_SIGNING_KEY_FILE
+	default "$(ZEPHYR_NRF_MODULE_DIR)/boards/arm/thingy91x_nrf5340/nsib_signing_key.pem"
+
+endif # (!IS_SECURE_BOOTLOADER && !MCUBOOT)
