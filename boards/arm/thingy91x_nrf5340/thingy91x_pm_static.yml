@@ -93,3 +93,20 @@ settings_storage:
   address: 0xfe000
   size: 0x2000
   region: flash_primary
+
+sram_nonsecure:
+  address: 0x2000a000
+  end_address: 0x20060000
+  span:
+  - sram_primary
+  - rpmsg_nrf53_sram
+  - sram_mcuboot_bootmode
+  region: sram_primary
+  size: 0x76000
+
+sram_retained_mem:
+  in: sram_nonsecure
+  region: sram_primary
+  address: 0x2007FC00
+  size: 0x400
+
