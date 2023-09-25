@@ -1,0 +1,24 @@
+#
+#  Copyright (c) 2023 Nordic Semiconductor ASA
+#
+#  SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+menuconfig I2C_VIRTUAL_EEPROM_DRIVER
+	bool "I2C virtual EEPROM"
+	depends on I2C
+	depends on DT_HAS_NORDIC_NRF_TWIS_ENABLED
+	depends on DT_HAS_NORDIC_I2C_VIRTUAL_EEPROM_ENABLED
+	select NRFX_TWIS0 if HAS_HW_NRF_TWIS0
+	select NRFX_TWIS1 if HAS_HW_NRF_TWIS1
+	select NRFX_TWIS2 if HAS_HW_NRF_TWIS2
+	help
+	  Enable I2C virtual EEPROM slave driver.
+
+if I2C_VIRTUAL_EEPROM_DRIVER
+
+module = I2C_VIRTUAL_EEPROM_DRIVER
+module-str = i2c virtual eeprom
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # I2C_EEPROM_SLAVE

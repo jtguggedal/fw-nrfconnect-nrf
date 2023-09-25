@@ -1,0 +1,35 @@
+# Copyright (c) 2023 Nordic Semiconductor ASA
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+
+description: >
+    This is a i2c slave device that acts as a virtual eeprom for a bus master.
+ 
+compatible: "nordic,i2c-virtual-eeprom"
+
+include: base.yaml
+
+properties:
+    i2c-bus-idx:
+      type: int
+      required: true
+      description: i2c bus index
+
+    sda-gpios:
+      type: phandle-array
+      required: true
+      description: GPIO pin used for SDA
+
+    scl-gpios:
+      type: phandle-array
+      required: true
+      description: GPIO pin used for SCL
+
+    address:
+      type: int
+      required: true
+      description: Address of the i2c device on the bus
+
+    size:
+      type: int
+      description: Size of the virtual eeprom memory
+      default: 1024
