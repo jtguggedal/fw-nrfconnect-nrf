@@ -47,3 +47,5 @@ add_subdirectory_ifdef(CONFIG_TONE tone)
 add_subdirectory_ifdef(CONFIG_PSCM pcm_stream_channel_modifier)
 add_subdirectory_ifdef(CONFIG_DATA_FIFO data_fifo)
 add_subdirectory_ifdef(CONFIG_FEM_AL_LIB fem_al)
+
+add_subdirectory(conn_bridge_control)

@@ -1,0 +1,18 @@
+/*
+ * Copyright (c) 2021 Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ */
+
+
+&i2c2 {
+	eeprom: at24@7 {
+		compatible = "atmel,at24";
+		status = "okay";
+		size = <256>;
+		pagesize = <256>;
+		address-width = < 16 >;
+		timeout = < 100 >;
+		reg = <0x7>;
+	};
+};

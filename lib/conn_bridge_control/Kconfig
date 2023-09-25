@@ -1,0 +1,17 @@
+#
+#  Copyright (c) 2023 Nordic Semiconductor ASA
+#
+#  SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+config CONN_BRIDGE_CONTROL_HOST
+	bool "Connectivity Bridge Control Host Library"
+	depends on I2C_VIRTUAL_EEPROM_DRIVER
+	help
+	  Enable the connectivity bridge control host library.
+
+config CONN_BRIDGE_CONTROL_CLIENT
+	bool "Connectivity Bridge Control Client Library"
+	depends on EEPROM_AT24
+	help
+	  Enable the connectivity bridge control client library.

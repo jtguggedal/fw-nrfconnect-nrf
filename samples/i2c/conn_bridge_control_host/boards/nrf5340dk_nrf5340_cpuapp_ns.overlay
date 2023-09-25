@@ -1,0 +1,21 @@
+/*
+ * Copyright (c) 2023 Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+&i2c1 {
+	compatible = "nordic,nrf-twis";
+	status = "okay";
+};
+
+/ {
+	virtual_eeprom: eeprom {
+		compatible = "nordic,i2c-virtual-eeprom";
+		status = "okay";
+		i2c-bus-idx = <1>;
+		sda-gpios = <&gpio1 2 GPIO_ACTIVE_HIGH>;
+		scl-gpios = <&gpio1 3 GPIO_ACTIVE_HIGH>;
+		address = <0x7>;
+	};
+};
