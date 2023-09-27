@@ -8,16 +8,36 @@
 #include <zephyr/usb/usb_device.h>
 #include <zephyr/kernel.h>
 
+#include <cmsis_dap.h>
 #include "cmsis_dap_usb.h"
+
+#include <zephyr/retention/bootmode.h>
+#include <zephyr/sys/reboot.h>
+
+#define ID_DAP_VENDOR14 (ID_DAP_VENDOR0 + 14)
+#define ID_DAP_VENDOR_BOOTLOADER ID_DAP_VENDOR14
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(dap_handler, CONFIG_DAP_LOG_LEVEL);
+
+static int dap_vendor_handler(const uint8_t *request, uint8_t *response)
+{
+	if (*request == ID_DAP_VENDOR_BOOTLOADER) {
+		bootmode_set(BOOT_MODE_TYPE_BOOTLOADER);
+		sys_reboot(SYS_REBOOT_WARM);
+		/* no return from here */
+	}
+	response[0] = ID_DAP_INVALID;
+	return 1U;
+}
 
 static int dap_handler_loop(void)
 {
 	int ret;
 
 	const struct device *const swd_dev = DEVICE_DT_GET_ONE(zephyr_swdp_gpio);
+
+	(void) dap_install_vendor_callback(dap_vendor_handler);
 	
 	ret = cmsis_dap_usb_init(swd_dev);
 	if (ret != 0) {
