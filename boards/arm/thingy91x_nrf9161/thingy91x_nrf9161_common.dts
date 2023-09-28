@@ -114,6 +114,15 @@
 		compatible = "nordic,npm6001-regulator";
 		reg = <0x70>;
 	};
+	eeprom: at24@7 {
+		compatible = "atmel,at24";
+		status = "okay";
+		size = <256>;
+		pagesize = <256>;
+		address-width = < 16 >;
+		timeout = < 100 >;
+		reg = <0x7>;
+	};
 };
 
 &spi3 {
