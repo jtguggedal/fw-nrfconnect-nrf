@@ -10,12 +10,26 @@
 #include <nrf_wifi_radio_test_shell.h>
 #include <zephyr/sys/reboot.h>
 #include <zephyr/random/rand32.h>
+#include <zephyr/drivers/gpio.h>
+
+static const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(DT_ALIAS(led0), gpios);
 
 int main(void)
 {
 	unsigned int val[OTP_MAX_WORD_LEN];
 	unsigned int write_val[2];
 	unsigned int ret, err;
+
+	if (!device_is_ready(led.port)) {
+		printk("%s: device not ready.\n", led.port->name);
+		return -ENOEXEC;
+	}
+
+	ret = gpio_pin_configure_dt(&led, GPIO_OUTPUT);
+	if (ret) {
+		printk("configuring led failed: %d", ret);
+		return -ENOEXEC;
+	}
 
 	printk("reading OTP...\n");
 	err = read_otp_memory(0, &val[0], OTP_MAX_WORD_LEN);
@@ -71,6 +85,8 @@ int main(void)
 			return -ENOEXEC;
 		}
 	}
+
+	gpio_pin_set_dt(&led, 1);
 
 	return 0;
 }
