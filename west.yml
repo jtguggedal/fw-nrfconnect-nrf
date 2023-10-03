@@ -37,8 +37,8 @@ manifest:
       url-base: https://github.com/ant-nrfconnect
     - name: babblesim
       url-base: https://github.com/BabbleSim
-    - name: bosch
-      url-base: https://github.com/boschsensortec
+    - name: bjda-thingy91
+      url-base: https://github.com/bjda-thingy91
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -60,8 +60,9 @@ manifest:
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/introduction/index.html
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/modules.html
     - name: zephyr
+      remote: bjda-thingy91
       repo-path: sdk-zephyr
-      revision: v3.4.99-ncs1-rc1
+      revision: thingy91x_on_manifest
       import:
         # In addition to the zephyr repository itself, NCS also
         # imports the contents of zephyr/west.yml at the above
