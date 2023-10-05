@@ -37,6 +37,8 @@ manifest:
       url-base: https://github.com/ant-nrfconnect
     - name: babblesim
       url-base: https://github.com/BabbleSim
+    - name: bosch
+      url-base: https://github.com/boschsensortec
     - name: bjda-thingy91
       url-base: https://github.com/bjda-thingy91
 
