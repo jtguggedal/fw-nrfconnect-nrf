@@ -8,6 +8,10 @@ if  BOARD_THINGY91X_NRF5340_CPUAPP || BOARD_THINGY91X_NRF5340_CPUAPP_NS
 config BOARD
 	default "thingy91x_nrf5340_cpuapp" if BOARD_THINGY91X_NRF5340_CPUAPP || BOARD_THINGY91X_NRF5340_CPUAPP_NS
 
+DT_COMPAT_NORDIC_NRF700X_SPI := nordic,nrf700x-spi
+config NRF7002_ON_SPI
+	def_bool $(dt_compat_enabled,$(DT_COMPAT_NORDIC_NRF700X_SPI))
+
 # By default, if we build for a Non-Secure version of the board,
 # enable building with TF-M as the Secure Execution Environment.
 config BUILD_WITH_TFM
@@ -108,5 +112,38 @@ config BOOTLOADER_MCUBOOT
 
 config SB_SIGNING_KEY_FILE
 	default "$(ZEPHYR_NRF_MODULE_DIR)/boards/arm/thingy91x_nrf5340/nsib_signing_key.pem"
+
+# For on-board regulators
+config REGULATOR
+	default y
+
+# For charger
+config SENSOR
+	default y
+
+# nPM6001 must be initialized after it is powered from nPM1300 (REGULATOR_NPM1300_INIT_PRIORITY)
+config MFD_NPM6001_INIT_PRIORITY
+	default 77
+config REGULATOR_NPM6001_INIT_PRIORITY
+	default 78
+
+# GPIO hogs must be initialized after nPM1300 (GPIO_NPM1300_INIT_PRIORITY)
+config GPIO_HOGS_INIT_PRIORITY
+	default 81
+
+config USB_DEVICE_STACK
+	default y
+
+config USB_CDC_ACM
+	default y
+
+config USB_DEVICE_INITIALIZE_AT_BOOT
+	default y if !MCUBOOT
+
+config USB_DEVICE_REMOTE_WAKEUP
+	default n
+
+config USB_DEVICE_PRODUCT
+	default "Thingy:91 X nRF53 Application"
 
 endif # (!IS_SECURE_BOOTLOADER && !MCUBOOT)
