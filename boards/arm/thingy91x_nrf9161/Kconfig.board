@@ -4,7 +4,7 @@
 #
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 
-if SOC_NRF9161_SICA
+if SOC_NRF9161_LACA
 
 config BOARD_THINGY91X_NRF9161
 	bool "nRF9161 THINGY91X"
@@ -12,4 +12,4 @@ config BOARD_THINGY91X_NRF9161
 config BOARD_THINGY91X_NRF9161_NS
 	bool "nRF9161 THINGY91X non-secure"
 
-endif # SOC_NRF9161_SICA
+endif # SOC_NRF9161_LACA
