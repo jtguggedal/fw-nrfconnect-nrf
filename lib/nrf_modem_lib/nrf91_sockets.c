@@ -196,18 +196,18 @@ static int z_to_nrf_optname(int z_in_level, int z_in_optname,
 		case SO_ERROR:
 			*nrf_out_optname = NRF_SO_ERROR;
 			break;
-		case SO_EXCEPTIONAL_DATA:
-			*nrf_out_optname = NRF_SO_EXCEPTIONAL_DATA;
-			break;
+		// case SO_EXCEPTIONAL_DATA:
+		// 	*nrf_out_optname = NRF_SO_EXCEPTIONAL_DATA;
+		// 	break;
 		case SO_RCVTIMEO:
 			*nrf_out_optname = NRF_SO_RCVTIMEO;
 			break;
 		case SO_SNDTIMEO:
 			*nrf_out_optname = NRF_SO_SNDTIMEO;
 			break;
-		case SO_BINDTOPDN:
-			*nrf_out_optname = NRF_SO_BINDTOPDN;
-			break;
+		// case SO_BINDTOPDN:
+		// 	*nrf_out_optname = NRF_SO_BINDTOPDN;
+		// 	break;
 		case SO_REUSEADDR:
 			*nrf_out_optname = NRF_SO_REUSEADDR;
 			break;
