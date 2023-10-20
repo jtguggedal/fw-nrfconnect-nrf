@@ -1,0 +1,13 @@
+#
+# Copyright (c) 2023 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+menu "Serial"
+
+module = Serial
+module-str = Serial
+source "subsys/logging/Kconfig.template.log_config"
+
+endmenu # Serial

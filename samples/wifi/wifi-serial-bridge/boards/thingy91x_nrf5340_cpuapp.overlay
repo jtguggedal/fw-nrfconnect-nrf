@@ -1,0 +1,14 @@
+/*
+ * Copyright (c) 2023 Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ */
+
+&uart0 {
+	status = "okay";
+	hw-flow-control;
+	// current-speed = < 1000000 >;
+	// group1 {
+	// 	nordic,drive-mode = <NRF_DRIVE_H0H1>;
+	// };
+};
