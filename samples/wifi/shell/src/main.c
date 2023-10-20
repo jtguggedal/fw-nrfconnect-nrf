@@ -24,7 +24,7 @@
 #define CONFIG_NET_CONFIG_SLIP_IPV4_MASK "255.255.255.0"
 #endif /* CONFIG_SLIP */
 
-#ifdef CONFIG_USB_DEVICE_STACK
+#ifdef CONFIG_USB_DEVICE_STACK_BLA
 #include <zephyr/usb/usb_device.h>
 
 /* Fixed address as the static IP given from Kconfig will be
@@ -50,7 +50,7 @@ int init_usb(void)
 
 int main(void)
 {
-#if defined(CONFIG_USB_DEVICE_STACK) || defined(CONFIG_SLIP)
+#if defined(CONFIG_USB_DEVICE_STACK_BLA) || defined(CONFIG_SLIP)
 	struct in_addr addr;
 #endif
 
@@ -61,7 +61,7 @@ int main(void)
 #endif
 	printk("Starting %s with CPU frequency: %d MHz\n", CONFIG_BOARD, SystemCoreClock/MHZ(1));
 
-#ifdef CONFIG_USB_DEVICE_STACK
+#ifdef CONFIG_USB_DEVICE_STACK_BLA
 	init_usb();
 
 	/* Redirect static IP address to netusb*/
