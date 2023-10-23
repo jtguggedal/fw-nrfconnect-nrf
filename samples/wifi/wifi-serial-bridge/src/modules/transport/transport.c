@@ -99,7 +99,7 @@ static void on_mqtt_publish(struct mqtt_helper_buf topic, struct mqtt_helper_buf
 		SEND_FATAL_ERROR();
 		return;
 	}
-
+	payload_str.string_len=payload.size;
 	err = zbus_chan_pub(&TRANSPORT_CHAN, &payload_str, K_SECONDS(1));
 	if (err) {
 		LOG_ERR("zbus_chan_pub, error: %d", err);

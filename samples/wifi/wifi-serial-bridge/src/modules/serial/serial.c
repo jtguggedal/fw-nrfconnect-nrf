@@ -13,17 +13,21 @@
 
 #include "message_channel.h"
 
-LOG_MODULE_REGISTER(serial, 4);
+#define RX_ESCAPE_CHAR '\n'
 
-#define BUF_SIZE 1024
+LOG_MODULE_REGISTER(serial, 4);
 
 /* Register subscriber */
 ZBUS_SUBSCRIBER_DEFINE(serial, CONFIG_MQTT_SAMPLE_TRANSPORT_MESSAGE_QUEUE_SIZE);
 
 static void submit_payload_work_fn(struct k_work *work);
 
-static K_MEM_SLAB_DEFINE(uart_slab, BUF_SIZE, 2, 4);
 static K_WORK_DELAYABLE_DEFINE(submit_payload_work, submit_payload_work_fn);
+
+#define MSG_SIZE 100
+
+/* queue to store up to 10 messages (aligned to 4-byte boundary) */
+K_MSGQ_DEFINE(uart_msgq, MSG_SIZE, 10, 4);
 
 static struct payload payload;
 
@@ -40,10 +44,6 @@ static void submit_payload(const char *buf, const size_t buf_len)
 		return;
 	}
 
-	// memcpy(payload.string, buf, buf_len);
-
-	// payload.string[buf_len] = 0;
-
 	payload.string_len = buf_len;
 
 	k_work_schedule(&submit_payload_work, K_NO_WAIT);
@@ -55,7 +55,7 @@ static void submit_payload_work_fn(struct k_work *work)
 
 	ARG_UNUSED(work);
 
-        LOG_DBG("Submitting payload");
+	LOG_DBG("Submitting payload");
 
 	err = zbus_chan_pub(&PAYLOAD_CHAN, &payload, K_SECONDS(1));
 	if (err) {
@@ -64,83 +64,51 @@ static void submit_payload_work_fn(struct k_work *work)
 	}
 }
 
-static void uart_callback(const struct device *dev, struct uart_event *evt, void *user_data)
+
+void print_to_uart(char *buf, uint8_t len)
 {
-	struct device *uart = user_data;
-	int err;
-
-	switch (evt->type) {
-	case UART_TX_DONE:
-		LOG_INF("Tx sent %d bytes", evt->data.tx.len);
-		break;
-
-	case UART_TX_ABORTED:
-		LOG_ERR("Tx aborted");
-		break;
-
-	case UART_RX_RDY:
-
-		LOG_INF("UART_RX_RDY: %p, offset %d", (void *)evt->data.rx.buf, evt->data.rx.offset);
-		LOG_INF("Received %d bytes", evt->data.rx.len);
-		LOG_HEXDUMP_INF(&evt->data.rx.buf[evt->data.rx.offset], evt->data.rx.len, "");
-
-		submit_payload(&evt->data.rx.buf[evt->data.rx.offset], evt->data.rx.len);
-		break;
-
-	case UART_RX_BUF_REQUEST:
-	{
-		uint8_t *buf;
-
-		err = k_mem_slab_alloc(&uart_slab, (void **)&buf, K_NO_WAIT);
-		__ASSERT(err == 0, "Failed to allocate slab");
-
-		err = uart_rx_buf_rsp(uart, buf, BUF_SIZE);
-		__ASSERT(err == 0, "Failed to provide new buffer");
-		LOG_INF("UART_RX_BUF_REQUEST: %p", (void *)buf);
-		break;
-	}
-
-	case UART_RX_BUF_RELEASED:
-		LOG_INF("UART_RX_BUF_RELEASED: %p", (void *)evt->data.rx_buf.buf);
-		k_mem_slab_free(&uart_slab, (void *)evt->data.rx_buf.buf);
-		break;
-
-	case UART_RX_DISABLED:
-		LOG_ERR("UART_RX_DISABLED");
-		break;
-
-	case UART_RX_STOPPED:
-		LOG_WRN("UART_RX_STOPPED reason %d", evt->data.rx_stop.reason);
-		break;
+	for (int i = 0; i < len; i++) {
+		uart_poll_out(uart_dev, buf[i]);
 	}
 }
-
 static void serial_send(const struct payload *payload)
 {
-        int err;
+	print_to_uart(payload->string, payload->string_len);
 
-        err = uart_tx(uart_dev, payload->string, payload->string_len, 10000);
-	__ASSERT(err == 0, "Failed to initiate transmission");
 }
 
-static void async_setup(void)
+static char rx_buf[MSG_SIZE];
+static int rx_buf_pos;
+
+void serial_cb(const struct device *dev, void *user_data)
 {
-	int err;
-	uint8_t *buf;
+	uint8_t c;
 
+	if (!uart_irq_update(dev)) {
+		return;
+	}
 
-	err = k_mem_slab_alloc(&uart_slab, (void **)&buf, K_NO_WAIT);
-	__ASSERT(err == 0, "Failed to alloc slab");
+	while (uart_irq_rx_ready(dev)) {
 
-	err = uart_callback_set(uart_dev, uart_callback, (void *)uart_dev);
-	__ASSERT(err == 0, "Failed to set callback");
+		uart_fifo_read(dev, &c, 1);
+		if ((c == RX_ESCAPE_CHAR) && rx_buf_pos > 0) {
+			/* terminate string */
+			rx_buf[rx_buf_pos++] = c;
 
-	err = uart_rx_enable(uart_dev, buf, BUF_SIZE, 10000);
-	__ASSERT(err == 0, "Failed to enable RX");
+			// k_msgq_put(&uart_msgq, &rx_buf, K_NO_WAIT);
+			submit_payload(rx_buf, rx_buf_pos);
+			LOG_INF("put on queue");
+			/* reset the buffer (it was copied to the msgq) */
+			rx_buf_pos = 0;
 
-        LOG_INF("Started UART RX");
+		} else if (rx_buf_pos < (sizeof(rx_buf) - 1)) {
+			rx_buf[rx_buf_pos++] = c;
+		} else {
+			// ditch all if butter is full and we do not hit frame end
+			rx_buf_pos = 0;
+		}
+	}
 }
-
 
 static void serial_task(void)
 {
@@ -150,9 +118,16 @@ static void serial_task(void)
 
 	__ASSERT(device_is_ready(uart_dev), "uart_dev device not ready");
 
-	async_setup();
-
 	k_sleep(K_SECONDS(2));
+
+	if (!device_is_ready(uart_dev)) {
+		printk("UART device not found!");
+		return;
+	}
+
+	/* configure interrupt and callback to receive data */
+	uart_irq_callback_user_data_set(uart_dev, serial_cb, NULL);
+	uart_irq_rx_enable(uart_dev);
 
 	while (!zbus_sub_wait(&serial, &chan, K_FOREVER)) {
 		if (&TRANSPORT_CHAN == chan) {
@@ -168,6 +143,4 @@ static void serial_task(void)
 	}
 }
 
-K_THREAD_DEFINE(serial_task_id,
-		1024,
-		serial_task, NULL, NULL, NULL, 3, 0, 0);
+K_THREAD_DEFINE(serial_task_id, 1024, serial_task, NULL, NULL, NULL, 3, 0, 0);
