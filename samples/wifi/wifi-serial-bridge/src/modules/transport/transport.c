@@ -87,7 +87,7 @@ static void on_mqtt_publish(struct mqtt_helper_buf topic, struct mqtt_helper_buf
 	static struct payload payload_str;
 	int len;
 
-	LOG_INF("Received payload: %.*s on topic: %.*s", payload.size,
+	LOG_DBG("Received payload: %.*s on topic: %.*s", payload.size,
 							 payload.ptr,
 							 topic.size,
 							 topic.ptr);
@@ -161,9 +161,9 @@ static void publish(struct payload *payload)
 		return;
 	}
 
-	LOG_INF("Published message on topic: \"%.*s\":", param.message.topic.topic.size,
+	LOG_DBG("Published message on topic: \"%.*s\":", param.message.topic.topic.size,
 							 param.message.topic.topic.utf8);
-	LOG_HEXDUMP_INF(param.message.payload.data, param.message.payload.len, "");
+	LOG_HEXDUMP_DBG(param.message.payload.data, param.message.payload.len, "");
 }
 
 static void subscribe(void)
