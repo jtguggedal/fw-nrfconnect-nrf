@@ -15,7 +15,7 @@
 
 #define RX_ESCAPE_CHAR '\n'
 
-LOG_MODULE_REGISTER(serial, 4);
+LOG_MODULE_REGISTER(serial, 3);
 
 /* Register subscriber */
 ZBUS_SUBSCRIBER_DEFINE(serial, CONFIG_MQTT_SAMPLE_TRANSPORT_MESSAGE_QUEUE_SIZE);
@@ -24,7 +24,7 @@ static void submit_payload_work_fn(struct k_work *work);
 
 static K_WORK_DELAYABLE_DEFINE(submit_payload_work, submit_payload_work_fn);
 
-#define MSG_SIZE 100
+#define MSG_SIZE 120
 
 /* queue to store up to 10 messages (aligned to 4-byte boundary) */
 K_MSGQ_DEFINE(uart_msgq, MSG_SIZE, 10, 4);
@@ -64,7 +64,6 @@ static void submit_payload_work_fn(struct k_work *work)
 	}
 }
 
-
 void print_to_uart(char *buf, uint8_t len)
 {
 	for (int i = 0; i < len; i++) {
@@ -74,7 +73,6 @@ void print_to_uart(char *buf, uint8_t len)
 static void serial_send(const struct payload *payload)
 {
 	print_to_uart(payload->string, payload->string_len);
-
 }
 
 static char rx_buf[MSG_SIZE];
@@ -97,7 +95,7 @@ void serial_cb(const struct device *dev, void *user_data)
 
 			// k_msgq_put(&uart_msgq, &rx_buf, K_NO_WAIT);
 			submit_payload(rx_buf, rx_buf_pos);
-			LOG_INF("put on queue");
+			LOG_DBG("put on queue");
 			/* reset the buffer (it was copied to the msgq) */
 			rx_buf_pos = 0;
 
@@ -138,9 +136,28 @@ static void serial_task(void)
 				return;
 			}
 
-			serial_send(&payload);
+			// serial_send(&payload);
+			k_msgq_put(&uart_msgq, &payload, K_NO_WAIT);
 		}
 	}
 }
 
 K_THREAD_DEFINE(serial_task_id, 1024, serial_task, NULL, NULL, NULL, 3, 0, 0);
+
+static void serial_out_task(void)
+{
+
+	struct payload serial_out = {};
+	if (!device_is_ready(uart_dev)) {
+		printk("UART device not found!");
+		return;
+	}
+
+	while (k_msgq_get(&uart_msgq, &serial_out, K_FOREVER) == 0) {
+		LOG_DBG("sending uart");
+
+		serial_send(&serial_out);
+	}
+}
+
+K_THREAD_DEFINE(serial_out_task_id, 2048, serial_out_task, NULL, NULL, NULL, 3, 0, 0);
