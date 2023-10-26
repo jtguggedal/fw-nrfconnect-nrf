@@ -20,16 +20,16 @@ LOG_MODULE_REGISTER(serial, 3);
 /* Register subscriber */
 ZBUS_SUBSCRIBER_DEFINE(serial, CONFIG_MQTT_SAMPLE_TRANSPORT_MESSAGE_QUEUE_SIZE);
 
-static void submit_payload_work_fn(struct k_work *work);
 
-static K_WORK_DELAYABLE_DEFINE(submit_payload_work, submit_payload_work_fn);
 
-#define MSG_SIZE 120
 
-/* queue to store up to 10 messages (aligned to 4-byte boundary) */
-K_MSGQ_DEFINE(uart_msgq, MSG_SIZE, 10, 4);
+#define MSG_SIZE CONFIG_MQTT_SAMPLE_PAYLOAD_CHANNEL_STRING_MAX_SIZE
 
 static struct payload payload;
+/* queue to store up to 10 messages (aligned to 4-byte boundary) */
+K_MSGQ_DEFINE(uart_msgq_from_wifi, sizeof(payload), 10, 4);
+K_MSGQ_DEFINE(uart_msgq_to_wifi,  sizeof(payload), 10, 4);
+
 
 const struct device *uart_dev = DEVICE_DT_GET(DT_NODELABEL(uart0));
 
@@ -46,23 +46,12 @@ static void submit_payload(const char *buf, const size_t buf_len)
 
 	payload.string_len = buf_len;
 
-	k_work_schedule(&submit_payload_work, K_NO_WAIT);
+	k_msgq_put(&uart_msgq_to_wifi, &payload, K_NO_WAIT);
+
+
 }
 
-static void submit_payload_work_fn(struct k_work *work)
-{
-	int err;
 
-	ARG_UNUSED(work);
-
-	LOG_DBG("Submitting payload");
-
-	err = zbus_chan_pub(&PAYLOAD_CHAN, &payload, K_SECONDS(1));
-	if (err) {
-		LOG_ERR("zbus_chan_pub, error: %d", err);
-		SEND_FATAL_ERROR();
-	}
-}
 
 void print_to_uart(char *buf, uint8_t len)
 {
@@ -93,7 +82,6 @@ void serial_cb(const struct device *dev, void *user_data)
 			/* terminate string */
 			rx_buf[rx_buf_pos++] = c;
 
-			// k_msgq_put(&uart_msgq, &rx_buf, K_NO_WAIT);
 			submit_payload(rx_buf, rx_buf_pos);
 			LOG_DBG("put on queue");
 			/* reset the buffer (it was copied to the msgq) */
@@ -137,7 +125,7 @@ static void serial_task(void)
 			}
 
 			// serial_send(&payload);
-			k_msgq_put(&uart_msgq, &payload, K_NO_WAIT);
+			k_msgq_put(&uart_msgq_from_wifi, &payload, K_NO_WAIT);
 		}
 	}
 }
@@ -153,7 +141,7 @@ static void serial_out_task(void)
 		return;
 	}
 
-	while (k_msgq_get(&uart_msgq, &serial_out, K_FOREVER) == 0) {
+	while (k_msgq_get(&uart_msgq_from_wifi, &serial_out, K_FOREVER) == 0) {
 		LOG_DBG("sending uart");
 
 		serial_send(&serial_out);
@@ -161,3 +149,22 @@ static void serial_out_task(void)
 }
 
 K_THREAD_DEFINE(serial_out_task_id, 2048, serial_out_task, NULL, NULL, NULL, 3, 0, 0);
+
+static void serial_in_task(void)
+{
+
+	struct payload to_wifi = {};
+	int err = 0;
+
+	while (k_msgq_get(&uart_msgq_to_wifi, &to_wifi, K_FOREVER) == 0) {
+		LOG_DBG("Submitting payload");
+
+		err = zbus_chan_pub(&PAYLOAD_CHAN, &to_wifi, K_SECONDS(1));
+		if (err) {
+			LOG_ERR("zbus_chan_pub, error: %d", err);
+			SEND_FATAL_ERROR();
+		}
+	}
+}
+
+K_THREAD_DEFINE(serial_in_task_id, 2048, serial_in_task, NULL, NULL, NULL, 3, 0, 0);
