@@ -91,7 +91,7 @@ Values are provided in kilobytes (KB).
 
    .. tab:: nRF5340 DK
 
-      The following table lists memory requirements for samples running on the :ref:`nRF5340 DK <programming_board_names>` (:ref:`nrf5340dk_nrf5340_cpuapp <zephyr:nrf5340dk_nrf5340>`).
+      The following table lists memory requirements for samples running on the :ref:`nRF5340 DK <programming_board_names>` (:ref:`nrf5340dk/nrf5340/cpuapp <zephyr:nrf5340dk_nrf5340>`).
 
       +-------------------------------------------------------------------+---------------+-------------------+----------------+------------+-------------+---------------------------------+
       | Sample                                                            |   MCUboot ROM |   Application ROM |   Factory data |   Settings |   Total ROM |   Total RAM (incl. static HEAP) |
@@ -264,7 +264,7 @@ For more information about configuration of memory layouts in Matter, see :ref:`
 
    .. tab:: nRF5340 DK
 
-      The following memory map is valid for Matter applications running on the :ref:`nRF5340 DK <programming_board_names>` (:ref:`nrf5340dk_nrf5340_cpuapp <zephyr:nrf5340dk_nrf5340>`).
+      The following memory map is valid for Matter applications running on the :ref:`nRF5340 DK <programming_board_names>` (:ref:`nrf5340dk/nrf5340/cpuapp <zephyr:nrf5340dk_nrf5340>`).
 
       Application core flash (size: 0x100000 = 1024kB)
         +-----------------------------------------+---------------------+-------------------+---------------------+-----------------+-------------------+

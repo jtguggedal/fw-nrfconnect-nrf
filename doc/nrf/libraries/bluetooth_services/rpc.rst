@@ -29,7 +29,7 @@ Open a command prompt in the build folder of the application sample and enter th
 
 .. code-block:: console
 
-   west build -b nrf5340dk_nrf5340_cpuapp -- -DCONFIG_BT_RPC_STACK=y
+   west build -b nrf5340dk/nrf5340/cpuapp -- -DCONFIG_BT_RPC_STACK=y
 
 Requirements
 ************

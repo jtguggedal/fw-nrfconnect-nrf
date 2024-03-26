@@ -60,7 +60,7 @@ The following tables show the power consumption measured with the configuration 
       .. table:: Configuration
 
          +--------------------------+---------------------+--------------------------+
-         | Parameter                | nrf52840dk_nrf52840 | nrf5340dk_nrf5340_cpuapp |
+         | Parameter                | nrf52840dk/nrf52840 | nrf5340dk/nrf5340/cpuapp |
          +==========================+=====================+==========================+
          | Board revision           |              v3.0.1 |                   v2.0.1 |
          +--------------------------+---------------------+--------------------------+
@@ -74,7 +74,7 @@ The following tables show the power consumption measured with the configuration 
       .. table:: Power consumption
 
          +-------------------------------+-----------------------+----------------------------+
-         | Parameter                     |   nrf52840dk_nrf52840 |   nrf5340dk_nrf5340_cpuapp |
+         | Parameter                     |   nrf52840dk/nrf52840 |   nrf5340dk/nrf5340/cpuapp |
          +===============================+=======================+============================+
          | Total charge per minute [μC]  |               1136.00 |                    1203.00 |
          +-------------------------------+-----------------------+----------------------------+
@@ -89,7 +89,7 @@ The following tables show the power consumption measured with the configuration 
       .. table:: Configuration
 
          +--------------------------------+---------------------+--------------------------+
-         | Parameter                      | nrf52840dk_nrf52840 | nrf5340dk_nrf5340_cpuapp |
+         | Parameter                      | nrf52840dk/nrf52840 | nrf5340dk/nrf5340/cpuapp |
          +================================+=====================+==========================+
          | Board revision                 |              v3.0.1 |                   v2.0.1 |
          +--------------------------------+---------------------+--------------------------+
@@ -109,7 +109,7 @@ The following tables show the power consumption measured with the configuration 
       .. table:: Power consumption
 
          +---------------------------------+-----------------------+----------------------------+
-         | Parameter                       |   nrf52840dk_nrf52840 |   nrf5340dk_nrf5340_cpuapp |
+         | Parameter                       |   nrf52840dk/nrf52840 |   nrf5340dk/nrf5340/cpuapp |
          +=================================+=======================+============================+
          | Total charge per minute [μC]    |               1042.20 |                    1148.60 |
          +---------------------------------+-----------------------+----------------------------+

@@ -224,7 +224,7 @@ Change the build target as given below for the nRF7001 DK, nRF7002 EK and nRF700
 
   .. code-block:: console
 
-     nrf5340dk_nrf5340_cpuapp
+     nrf5340dk/nrf5340/cpuapp
 
 Add the following SHIELD options for the nRF7002 EK and nRF7001 EK.
 
@@ -248,7 +248,7 @@ Build for the nRF5340 DK:
 
 .. code-block:: console
 
-   west build -p -b nrf5340dk_nrf5340_cpuapp
+   west build -p -b nrf5340dk/nrf5340/cpuapp
 
 The generated HEX file to be used is :file:`throughput/build/zephyr/merged_domains.hex`.
 

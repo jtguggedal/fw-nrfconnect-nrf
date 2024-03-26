@@ -53,7 +53,7 @@ nRF52832 Desktop Mouse (``nrf52dmouse``) and nRF52810 Desktop Mouse (``nrf52810d
         Bluetooth uses either Zephyr's software link layer (``nrf52810dmouse``) or Nordic's SoftDevice link layer (``nrf52dmouse``).
       * The preconfigured build types for both ``nrf52dmouse`` and ``nrf52810dmouse`` boards are without the bootloader due to memory size limits on the ``nrf52810dmouse`` board.
 
-Sample mouse, keyboard or dongle (``nrf52840dk_nrf52840``)
+Sample mouse, keyboard or dongle (``nrf52840dk/nrf52840``)
       * The configuration uses the nRF52840 Development Kit.
       * The build types allow to build the application as mouse, keyboard or dongle.
       * Inputs are simulated based on the hardware button presses.
@@ -61,14 +61,14 @@ Sample mouse, keyboard or dongle (``nrf52840dk_nrf52840``)
       * The board supports ``debug`` :ref:`nrf_desktop_bluetooth_guide_fast_pair` configuration that acts as a mouse (:file:`prj_fast_pair.conf`).
         The configuration uses the MCUboot bootloader built in the direct-xip mode (``MCUBOOT+XIP``), and supports firmware updates using the :ref:`nrf_desktop_dfu` and the :ref:`nrf_desktop_dfu_mcumgr`.
 
-Sample dongle (``nrf52833dk_nrf52833``)
+Sample dongle (``nrf52833dk/nrf52833``)
       * The configuration uses the nRF52833 Development Kit.
       * The application is configured to act as a dongle that forwards data from both mouse and keyboard.
       * Bluetooth uses Nordic Semiconductor's SoftDevice link layer and is configured to act as a central.
         Input data comes from Bluetooth and is retransmitted to USB.
       * The configuration with the MCUboot bootloader is set as default.
 
-Sample dongle (``nrf52833dk_nrf52820``)
+Sample dongle (``nrf52833dk/nrf52820``)
       * The configuration uses the nRF52820 emulation on the nRF52833 Development Kit.
       * The application is configured to act as a dongle that forwards data from both mouse and keyboard.
       * Bluetooth uses Zephyr's software link layer and is configured to act as a central.
@@ -83,12 +83,12 @@ nRF52832 Desktop Keyboard (``nrf52kbd``)
       * The board supports ``release`` :ref:`nrf_desktop_bluetooth_guide_fast_pair` configuration (:file:`prj_release_fast_pair.conf`).
         The configuration uses the MCUboot bootloader built in the direct-xip mode (``MCUBOOT+XIP``), and supports firmware updates using the :ref:`nrf_desktop_dfu` and the :ref:`nrf_desktop_dfu_mcumgr`.
 
-nRF52840 USB Dongle (``nrf52840dongle_nrf52840``) and nRF52833 USB Dongle (``nrf52833dongle``)
+nRF52840 USB Dongle (``nrf52840dongle/nrf52840``) and nRF52833 USB Dongle (``nrf52833dongle``)
       * Since the nRF52840 Dongle is generic and defined in Zephyr, project-specific changes are applied in the DTS overlay file.
       * The application is configured to act as a dongle that forwards data from both mouse and keyboard.
       * Bluetooth uses Nordic Semiconductor's SoftDevice link layer and is configured to act as a central.
         Input data comes from Bluetooth and is retransmitted to USB.
-      * The configuration with the B0 bootloader is set as default for the ``nrf52840dongle_nrf52840`` board and with the MCUboot bootloader is set as default for the ``nrf52833dongle`` board.
+      * The configuration with the B0 bootloader is set as default for the ``nrf52840dongle/nrf52840`` board and with the MCUboot bootloader is set as default for the ``nrf52833dongle`` board.
 
 nRF52820 USB Dongle (``nrf52820dongle``)
       * The application is configured to act as a dongle that forwards data from both mouse and keyboard.
@@ -96,13 +96,13 @@ nRF52820 USB Dongle (``nrf52820dongle``)
         Input data comes from Bluetooth and is retransmitted to USB.
       * |preconfigured_build_types|
 
-Sample dongle (``nrf5340dk_nrf5340``)
+Sample dongle (``nrf5340dk/nrf5340``)
       * The application is configured to act as a dongle that forwards data from both mouse and keyboard.
       * Bluetooth uses Nordic Semiconductor's SoftDevice link layer without LLPM and is configured to act as a central.
         Input data comes from Bluetooth and is retransmitted to USB.
       * The configuration with the B0 bootloader is set as default.
 
-Sample mouse or keyboard (``nrf54l15pdk_nrf54l15_cpuapp``)
+Sample mouse or keyboard (``nrf54l15pdk/nrf54l15/cpuapp``)
       * The configuration uses the nRF54L15 Preview Development Kit (PDK).
       * The build types allow to build the application as a mouse or a keyboard.
       * Inputs are simulated based on the hardware button presses.

@@ -356,7 +356,7 @@ Programming the Hello World! sample
 ***********************************
 
 The :ref:`zephyr:hello_world_user` sample is a simple Zephyr sample.
-It uses the ``nrf54l15dk_nrf54l15_cpuapp@soc1`` build target.
+It uses the ``nrf54l15pdk/nrf54l15/cpuapp`` build target.
 
 To build and program the sample to the nRF54L15 PDK, complete the following steps:
 
@@ -364,7 +364,7 @@ To build and program the sample to the nRF54L15 PDK, complete the following step
 #. Navigate to the :file:`zephyr/samples/hello_world` folder containing the sample.
 #. Build the sample by running the following command::
 
-      west build -b nrf54l15dk_nrf54l15_cpuapp@soc1
+      west build -b nrf54l15pdk/nrf54l15/cpuapp
 
 #. Program the sample using the standard |NCS| command.
    If you have multiple Nordic Semiconductor devices, make sure that only the nRF54L15 PDK you want to program is connected.
@@ -406,7 +406,7 @@ To read the logs from the :ref:`zephyr:hello_world_user` sample programmed to th
   .. code-block:: console
 
    *** Booting Zephyr OS build 06af494ba663  ***
-   Hello world! nrf54l15dk_nrf54l15_cpuapp@soc1
+   Hello world! nrf54l15pdk/nrf54l15/cpuapp
 
 .. note::
    If no output is shown when using nRF Serial Terminal, select a different serial port in the terminal application.

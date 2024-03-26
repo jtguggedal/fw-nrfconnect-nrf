@@ -44,12 +44,12 @@ The following is an example of the CLI command:
 
    west build -b nrf7002dk_nrf5340_cpuapp
 
-To build for the nRF7002 EK with nRF5340 DK, use the ``nrf5340dk_nrf5340_cpuapp`` build target with the ``SHIELD`` CMake option set to ``nrf7002ek``.
+To build for the nRF7002 EK with nRF5340 DK, use the ``nrf5340dk/nrf5340/cpuapp`` build target with the ``SHIELD`` CMake option set to ``nrf7002ek``.
 The following is an example of the CLI command:
 
 .. code-block:: console
 
-   west build -b nrf5340dk_nrf5340_cpuapp -- -DSHIELD=nrf7002ek
+   west build -b nrf5340dk/nrf5340/cpuapp -- -DSHIELD=nrf7002ek
 
 To build with ``raw_tx`` shell support for the nRF7002 DK, use the ``nrf7002dk_nrf5340_cpuapp`` build target and raw TX overlay configuration.
 The following is an example of the CLI command:
@@ -62,21 +62,21 @@ The following is an example of the CLI command:
 
    .. group-tab:: nRF9161 DK
 
-      To build for the nRF9161 DK, use the ``nrf9161dk_nrf9161_ns`` build target with the ``SHIELD`` CMake option set to ``nrf7002ek`` and a scan-only overlay configuration.
+      To build for the nRF9161 DK, use the ``nrf9161dk/nrf9161/ns`` build target with the ``SHIELD`` CMake option set to ``nrf7002ek`` and a scan-only overlay configuration.
       The following is an example of the CLI command:
 
       .. code-block:: console
 
-         west build -p -b nrf9161dk_nrf9161_ns -- -DEXTRA_CONF_FILE=overlay-scan-only.conf -DSHIELD=nrf7002ek
+         west build -p -b nrf9161dk/nrf9161/ns -- -DEXTRA_CONF_FILE=overlay-scan-only.conf -DSHIELD=nrf7002ek
 
    .. group-tab:: nRF9160 DK
 
-      To build for the nRF9160 DK, use the ``nrf9160dk_nrf9160_ns`` build target with the ``SHIELD`` CMake option set to ``nrf7002ek`` and a scan-only overlay configuration.
+      To build for the nRF9160 DK, use the ``nrf9160dk/nrf9160/ns`` build target with the ``SHIELD`` CMake option set to ``nrf7002ek`` and a scan-only overlay configuration.
       The following is an example of the CLI command:
 
     .. code-block:: console
 
-       west build -b nrf9160dk_nrf9160_ns -- -DEXTRA_CONF_FILE=overlay-scan-only.conf -DSHIELD=nrf7002ek
+       west build -b nrf9160dk/nrf9160/ns -- -DEXTRA_CONF_FILE=overlay-scan-only.conf -DSHIELD=nrf7002ek
 
 See also :ref:`cmake_options` for instructions on how to provide CMake options.
 

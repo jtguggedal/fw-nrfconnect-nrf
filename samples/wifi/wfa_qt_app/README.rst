@@ -73,12 +73,12 @@ The following is an example of the CLI command:
 
    west build -b nrf7002dk_nrf5340_cpuapp
 
-To build for the nRF7002 EK with the nRF5340 DK, use the ``nrf5340dk_nrf5340_cpuapp`` build target with the ``SHIELD`` CMake option set to ``nrf7002ek``.
+To build for the nRF7002 EK with the nRF5340 DK, use the ``nrf5340dk/nrf5340/cpuapp`` build target with the ``SHIELD`` CMake option set to ``nrf7002ek``.
 The following is an example of the CLI command:
 
 .. code-block:: console
 
-   west build -b nrf5340dk_nrf5340_cpuapp -- -DSHIELD=nrf7002ek
+   west build -b nrf5340dk/nrf5340/cpuapp -- -DSHIELD=nrf7002ek
 
 To build for the nRF7002 DK with the netusb support, use the ``nrf7002dk_nrf5340_cpuapp`` build target with the configuration overlay :file:`overlay-netusb.conf`.
 The following is an example of the CLI command:

@@ -147,7 +147,7 @@ Change the build target as given below for the nRF7002 EK.
 
 .. code-block:: console
 
-   nrf5340dk_nrf5340_cpuapp -- -DSHIELD=nrf7002ek
+   nrf5340dk/nrf5340/cpuapp -- -DSHIELD=nrf7002ek
 
 Testing
 =======

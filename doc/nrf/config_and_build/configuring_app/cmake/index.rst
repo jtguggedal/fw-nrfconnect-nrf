@@ -100,7 +100,7 @@ This is how you can specify them:
       * :makevar:`EXTRA_DTC_OVERLAY_FILE` - Add the devicetree overlays in the :guilabel:`Devicetree overlays` menu.
       * Other variables - Provide CMake arguments in the :guilabel:`Extra CMake arguments` field, preceded by ``--``.
 
-      For example, to build the :ref:`location_sample` sample for the nRF9161 DK with the nRF7002 EK Wi-Fi support, select ``nrf9161dk_nrf9161_ns`` in the :guilabel:`Board` menu, :file:`overlay-nrf7002ek-wifi-scan-only.conf` in the :guilabel:`Kconfig fragments` menu, and provide ``-- -DSHIELD=nrf7002ek`` in the :guilabel:`Extra CMake arguments` field.
+      For example, to build the :ref:`location_sample` sample for the nRF9161 DK with the nRF7002 EK Wi-Fi support, select ``nrf9161dk/nrf9161/ns`` in the :guilabel:`Board` menu, :file:`overlay-nrf7002ek-wifi-scan-only.conf` in the :guilabel:`Kconfig fragments` menu, and provide ``-- -DSHIELD=nrf7002ek`` in the :guilabel:`Extra CMake arguments` field.
 
    .. group-tab:: Command line
 
@@ -111,7 +111,7 @@ This is how you can specify them:
 
       .. code-block::
 
-         west build -p -b nrf9161dk_nrf9161_ns -- -DSHIELD=nrf7002ek -DEXTRA_CONF_FILE=overlay-nrf7002ek-wifi-scan-only.conf
+         west build -p -b nrf9161dk/nrf9161/ns -- -DSHIELD=nrf7002ek -DEXTRA_CONF_FILE=overlay-nrf7002ek-wifi-scan-only.conf
 
 See :ref:`configuration_permanent_change` and Zephyr's :ref:`zephyr:west-building-cmake-args` for more information.
 

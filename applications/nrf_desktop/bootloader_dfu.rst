@@ -160,7 +160,7 @@ For an example of bootloader Kconfig configuration file defined by the applicati
 .. note::
   The nRF Desktop devices use either the serial recovery DFU with a single application slot or the background DFU.
   Both mentioned firmware upgrade methods are not used simultaneously by any of the configurations.
-  For example, the ``nrf52840dk_nrf52840`` board in ``prj_mcuboot_smp.conf`` uses only the background DFU and does not enable the serial recovery feature.
+  For example, the ``nrf52840dk/nrf52840`` board in ``prj_mcuboot_smp.conf`` uses only the background DFU and does not enable the serial recovery feature.
 
 .. _nrf_desktop_bootloader_background_dfu:
 

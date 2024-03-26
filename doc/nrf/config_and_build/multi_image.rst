@@ -230,7 +230,7 @@ With west, you can pass these configuration variables into CMake by using the ``
 
   .. code-block:: console
 
-     west build -b nrf52840dk_nrf52840 zephyr/samples/hello_world -- \
+     west build -b nrf52840dk/nrf52840 zephyr/samples/hello_world -- \
      -Dmcuboot_CONF_FILE=prj_a.conf \
      -DCONF_FILE=app_prj.conf
 

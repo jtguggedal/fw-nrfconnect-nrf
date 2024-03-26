@@ -58,7 +58,7 @@ To provide the ICMSG backend configuration, specify the ``-DCONF_FILE=prj_icmsg.
 
    .. code-block:: console
 
-      west build -p -b nrf5340dk_nrf5340_cpuapp -- -DCONF_FILE=prj_icmsg.conf
+      west build -p -b nrf5340dk/nrf5340/cpuapp -- -DCONF_FILE=prj_icmsg.conf
 
 Building and running
 ********************
@@ -74,7 +74,7 @@ Complete the following steps to program the sample:
 
    .. code-block:: console
 
-      west build -b nrf5340dk_nrf5340_cpuapp
+      west build -b nrf5340dk/nrf5340/cpuapp
 
 #. Program both the cores:
 

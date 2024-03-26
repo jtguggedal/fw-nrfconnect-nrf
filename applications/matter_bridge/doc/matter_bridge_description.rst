@@ -476,7 +476,7 @@ For example:
 
    .. code-block:: console
 
-      west build -b nrf5340dk_nrf5340_cpuapp -p -- -DSHIELD=nrf7002ek -DCONFIG_NRF_WIFI_PATCHES_EXT_FLASH_STORE=y -Dmcuboot_CONFIG_UPDATEABLE_IMAGE_NUMBER=3
+      west build -b nrf5340dk/nrf5340/cpuapp -p -- -DSHIELD=nrf7002ek -DCONFIG_NRF_WIFI_PATCHES_EXT_FLASH_STORE=y -Dmcuboot_CONFIG_UPDATEABLE_IMAGE_NUMBER=3
 
 Selecting a build type
 ======================
