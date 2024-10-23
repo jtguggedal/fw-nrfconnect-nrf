@@ -602,29 +602,18 @@ Matter samples
 Networking samples
 ------------------
 
+* Added support for the :ref:`zephyr:nrf54l15dk_nrf54l15` board in combination with an nRF7002-based shield for the following samples:
+
+  * :ref:`aws_iot`
+  * :ref:`download_client`
+  * :ref:`mqtt_sample`
+  * :ref:`https_client`
+  * :ref:`udp_sample`
+  * :ref:`net_coap_client_sample`
+
 * :ref:`http_server` sample:
 
   * Fixed not to fail with a fatal error if IPv4 or IPv6 server setup fails.
-
-* :ref:`download_client` sample:
-
-  * Added support for the :ref:`zephyr:nrf54l15dk_nrf54l15` board in combination with an nRF7002-based shield.
-
-* :ref:`mqtt_sample` sample:
-
-  * Added support for the :ref:`zephyr:nrf54l15dk_nrf54l15` board in combination with an nRF7002-based shield.
-
-* :ref:`https_client` sample:
-
-  * Added support for the :ref:`zephyr:nrf54l15dk_nrf54l15` board in combination with an nRF7002-based shield.
-
-* :ref:`udp_sample`: sample:
-
-  * Added support for the :ref:`zephyr:nrf54l15dk_nrf54l15` board in combination with an nRF7002-based shield.
-
-* :ref:`net_coap_client_sample` sample:
-
-  * Added support for the :ref:`zephyr:nrf54l15dk_nrf54l15` board in combination with an nRF7002-based shield.
 
 NFC samples
 -----------
