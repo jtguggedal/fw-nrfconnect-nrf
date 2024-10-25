@@ -1,0 +1,6 @@
+
+/ {
+        chosen {
+		/delete-property/ zephyr,ipc_shm;
+	};
+};
