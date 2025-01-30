@@ -10,7 +10,6 @@ menu "Nordic Serial LTE Modem"
 
 config SLM_CUSTOMIZED
 	bool "Flag for customized functionality"
-	select SLM_STATS_WATCHDOG
 	select SLM_HW_REV
 	help
 	  Enable this flag to include customized logic.
