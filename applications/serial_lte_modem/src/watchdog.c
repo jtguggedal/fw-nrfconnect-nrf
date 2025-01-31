@@ -29,7 +29,7 @@ static void sys_workqueue_watchdog_callback(int channel_id, void *user_data)
 	ARG_UNUSED(channel_id);
 	ARG_UNUSED(user_data);
 
-	LOG_ERR("System workqueue watchdog triggered");
+	LOG_ERR("System workqueue watchdog");
 
 	slm_util_reboot(3);
 }
@@ -44,7 +44,7 @@ static void feed_watchdog_work_fn(struct k_work *work)
 
 	err = task_wdt_feed(sys_workqueue_wd_channel_id);
 	if (err) {
-		LOG_ERR("Cannot feed watchdog. Error: %d", err);
+		LOG_ERR("task_wdt_feed() error: %d", err);
 	}
 
 	/* Feed the watchdog */
@@ -60,15 +60,13 @@ static int init_task_watchdog(const struct device *unused)
 
 	const struct device *dev = device_get_binding(DT_LABEL(DT_NODELABEL(wdt)));
 	if (!dev) {
-		LOG_ERR("Cannot bind watchdog driver, hardware fallback not available");
+		LOG_ERR("WDT not available");
 	}
 
 	err = task_wdt_init(dev);
 
 	if (err) {
-		LOG_ERR("Cannot start task watchdog! Error code: %d", err);
-	} else {
-		LOG_INF("Task watchdog initialized");
+		LOG_ERR("task_wdt_init() error: %d", err);
 	}
 
 	/* Initialize and start feeding the watchdog on the system workqueue */
@@ -76,7 +74,7 @@ static int init_task_watchdog(const struct device *unused)
 		task_wdt_add(CONFIG_SLM_WATCHDOG_SYSTEM_WORKQUEUE_TIMEOUT_MSEC,
 			     sys_workqueue_watchdog_callback, NULL);
 	if (sys_workqueue_wd_channel_id < 0) {
-		LOG_ERR("Failed to add system workqueue watchdog");
+		LOG_ERR("task_wdt_add() error: %d", sys_workqueue_wd_channel_id);
 		return -ENXIO;
 	}
 
