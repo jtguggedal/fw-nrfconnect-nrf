@@ -274,7 +274,7 @@ exit:
 		rsp_send(rsp_buf, strlen(rsp_buf));
 	}
 
-	return ret;
+	return ret; 
 }
 
 static int do_tcp_server_stop(void)
@@ -498,7 +498,7 @@ static int do_tcp_send(const uint8_t *data, int datalen)
 				} else {
 					ui_led_set_state(LED_ID_DATA, UI_DATA_FAST);
 				}
-			}				
+			}
 		}
 #endif
 		return 0;
@@ -571,7 +571,7 @@ static int do_tcp_send_datamode(const uint8_t *data, int datalen)
 			} else {
 				ui_led_set_state(LED_ID_DATA, UI_DATA_FAST);
 			}
-		}				
+		}
 	}
 #endif
 
@@ -608,7 +608,7 @@ static void tcp_data_handle(uint8_t *data, uint32_t length)
 		} else {
 			ui_led_set_state(LED_ID_DATA, UI_DATA_FAST);
 		}
-	}				
+	}
 #endif
 
 	if (proxy.role == TCP_ROLE_CLIENT || tcpsvr_state == TCPSVR_CONNECTED) {
@@ -763,7 +763,7 @@ static int tcpsvr_input(int infd)
 					(struct sockaddr *)&remote, &len);
 		} else {
 			ret = accept(proxy.sock,
-					(struct sockaddr *)&remotev6, &len);			
+					(struct sockaddr *)&remotev6, &len);
 		}
 		LOG_DBG("accept(): %d", ret);
 		if (ret < 0) {
@@ -795,7 +795,7 @@ static int tcpsvr_input(int infd)
 				close(ret);
 				return -errno;
 			}
-		}		
+		}
 		if (proxy.filtermode) {
 			for (int i = 0; i < CONFIG_SLM_TCP_FILTER_SIZE; i++) {
 				if (strlen(ip_allowlist[i]) > 0 &&
@@ -843,6 +843,7 @@ static int tcpsvr_input(int infd)
 static void tcpsvr_thread_func(void *p1, void *p2, void *p3)
 {
 	int ret, current_size;
+	bool in_datamode;
 
 	ARG_UNUSED(p1);
 	ARG_UNUSED(p2);
@@ -942,10 +943,11 @@ exit:
 		proxy.sec_tag = INVALID_SEC_TAG;
 	}
 #endif
+	in_datamode = proxy.datamode;
 	slm_at_tcp_proxy_init();
 	sprintf(rsp_buf, "\r\n#XTCPSVR: %d,\"stopped\"\r\n", ret);
 	rsp_send(rsp_buf, strlen(rsp_buf));
-	if (proxy.datamode) {
+	if (in_datamode) {
 		if (exit_datamode()) {
 			sprintf(rsp_buf, "\r\n#XTCPSVR: 0,\"datamode\"\r\n");
 			rsp_send(rsp_buf, strlen(rsp_buf));
@@ -959,6 +961,7 @@ exit:
 static void tcpcli_thread_func(void *p1, void *p2, void *p3)
 {
 	int ret;
+	bool in_datamode;
 #if defined(CONFIG_SLM_DIAG)
 	int nw_reg_1 = 0, nw_reg_2 = 0;
 #endif
@@ -1023,10 +1026,11 @@ exit:
 			LOG_WRN("close(%d) fail: %d", proxy.sock, -errno);
 		}
 	}
+	in_datamode = proxy.datamode;
 	slm_at_tcp_proxy_init();
 	sprintf(rsp_buf, "\r\n#XTCPCLI: %d,\"disconnected\"\r\n", ret);
 	rsp_send(rsp_buf, strlen(rsp_buf));
-	if (proxy.datamode) {
+	if (in_datamode) {
 		if (exit_datamode()) {
 			sprintf(rsp_buf, "\r\n#XTCPCLI: 0,\"datamode\"\r\n");
 			rsp_send(rsp_buf, strlen(rsp_buf));
@@ -1141,7 +1145,7 @@ int handle_at_tcp_server(enum at_cmd_type cmd_type)
 		if (err) {
 			return err;
 		}
-		if (op == SERVER_START || op == SERVER_START_WITH_DATAMODE 
+		if (op == SERVER_START || op == SERVER_START_WITH_DATAMODE
 				|| op == SERVER_START6 || op == SERVER_START6_WITH_DATAMODE) {
 			if (proxy.sock != INVALID_SOCKET) {
 				LOG_ERR("Server is already running.");
@@ -1183,7 +1187,7 @@ int handle_at_tcp_server(enum at_cmd_type cmd_type)
 			}
 
 			err = do_tcp_server_start((uint16_t)port);
-			if (err == 0 && (op == SERVER_START_WITH_DATAMODE 
+			if (err == 0 && (op == SERVER_START_WITH_DATAMODE
 				|| op == SERVER_START6_WITH_DATAMODE)) {
 				proxy.datamode = true;
 			}
@@ -1196,7 +1200,7 @@ int handle_at_tcp_server(enum at_cmd_type cmd_type)
 		if (proxy.sock != INVALID_SOCKET &&
 		    proxy.role == TCP_ROLE_SERVER) {
 			sprintf(rsp_buf, "\r\n#XTCPSVR: %d,%d,%d,%d,%d\r\n",
-				proxy.sock, proxy.sock_peer, proxy.timeout, proxy.datamode, 
+				proxy.sock, proxy.sock_peer, proxy.timeout, proxy.datamode,
 					proxy.family);
 		} else {
 			sprintf(rsp_buf, "\r\n#XTCPSVR: %d,%d\r\n",
@@ -1335,7 +1339,7 @@ int handle_at_tcp_client(enum at_cmd_type cmd_type)
 		if (err) {
 			return err;
 		}
-		if (op == CLIENT_CONNECT || op == CLIENT_CONNECT_WITH_DATAMODE 
+		if (op == CLIENT_CONNECT || op == CLIENT_CONNECT_WITH_DATAMODE
 			|| op == CLIENT_CONNECT6 || op == CLIENT_CONNECT6_WITH_DATAMODE) {
 			uint16_t port;
 			char url[SLM_MAX_URL];
