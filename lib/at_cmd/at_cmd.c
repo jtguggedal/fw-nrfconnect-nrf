@@ -386,6 +386,8 @@ int at_cmd_write(const char *const cmd,
 	int err;
 	struct cmd_item command;
 	struct resp_item ret;
+	k_timeout_t remaining_timeout = K_SECONDS(CONFIG_AT_CMD_COMMAND_TIMEOUT);
+	uint64_t cmd_start_time = k_uptime_get();
 
 	if (atomic_get(&shutdown_mode) == 1) {
 		return -EHOSTDOWN;
@@ -393,6 +395,16 @@ int at_cmd_write(const char *const cmd,
 
 	__ASSERT(k_current_get() != socket_tid,
 		 "at_cmd deadlock: socket thread blocking self\n");
+
+	if (k_current_get() == socket_tid) {
+		LOG_ERR("at_cmd deadlock: socket thread blocking self");
+
+		if (state) {
+			*state = AT_CMD_ERROR_QUEUE;
+		}
+
+		return -EDEADLK;
+	}
 
 	if (cmd == NULL) {
 		LOG_ERR("cmd is NULL");
@@ -418,10 +430,20 @@ int at_cmd_write(const char *const cmd,
 	command.flags = AT_CMD_SYNC;
 
 	/* Ensure we get our own AT response, not an old one */
-	k_mutex_lock(&response_sync_get, K_FOREVER);
+	err = k_mutex_lock(&response_sync_get, remaining_timeout);
+	if (err) {
+		LOG_ERR("Could not lock response_sync_get, error %d", err);
+		if (state) {
+			*state = AT_CMD_ERROR_QUEUE;
+		}
+
+		return -EWOULDBLOCK;
+	}
+
+	remaining_timeout.ticks -= k_uptime_delta(&cmd_start_time);
 
 	/* We borrow the return code field from the currently unused response */
-	ret.code = k_msgq_put(&commands, &command, K_SECONDS(CONFIG_AT_CMD_COMMAND_TIMEOUT));
+	ret.code = k_msgq_put(&commands, &command, remaining_timeout);
 	if (ret.code) {
 		LOG_ERR("Could not enqueue cmd, error %d", ret.code);
 		if (state) {
