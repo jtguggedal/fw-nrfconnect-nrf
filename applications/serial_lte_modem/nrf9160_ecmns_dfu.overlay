@@ -1,16 +1,20 @@
 &uart0 {
 	current-speed = <1000000>;
-	tx-pin = <11>;
-	rx-pin = <10>;
+	tx-pin = <29>;
+	rx-pin = <28>;
+	// status = "disabled";
 };
 
 &uart2 {
 		compatible = "nordic,nrf-uarte";
 		current-speed = <19200>;
 		status = "okay";
-		tx-pin = <11>;
-		rx-pin = <10>;
-		rts-pin = <12>;
-		cts-pin = <7>;
-		hw-flow-control;
+	tx-pin = <29>;
+	rx-pin = <28>;
+	rts-pin = < 0x1b >;
+	cts-pin = < 0x1a >;
+	hw-flow-control;
+
+	// /delete-property/ rts-pin;
+	// /delete-property/ cts-pin;
 };
