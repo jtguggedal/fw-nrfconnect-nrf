@@ -39,6 +39,8 @@ manifest:
       url-base: https://github.com/memfault
     - name: lats1980
       url-base: https://github.com/lats1980
+    - name: jtguggedal
+      url-base: https://github.com/jtguggedal
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -58,8 +60,8 @@ manifest:
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/modules.html
     - name: zephyr
       repo-path: sdk-zephyr
-      remote: lats1980
-      revision: v2.6.0-rc1-ncs-branch-customized-v1.0
+      remote: jtguggedal
+      revision: v2.6.0-rc1-ncs-branch-customized-v1.0/watchdog-fixes
       import:
         # In addition to the zephyr repository itself, NCS also
         # imports the contents of zephyr/west.yml at the above
