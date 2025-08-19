@@ -83,6 +83,17 @@ void nrf_modem_lib_shm_tx_diagnose(void);
  */
 void nrf_modem_lib_heap_diagnose(void);
 
+#if defined(CONFIG_NRF_MODEM_LIB_TRACE_MEDIUM_RTT) && defined(CONFIG_NRF_MODEM_LIB_TRACE_RTT_DIAGNOSTICS)
+/**
+ * @brief Print diagnostic information for the RTT trace buffer.
+ *
+ * This function provides information about the RTT trace buffer status,
+ * including buffer size, usage, and availability. Useful for debugging
+ * RTT trace reliability issues.
+ */
+void nrf_modem_lib_trace_rtt_diagnose(void);
+#endif
+
 /** @} */
 
 #ifdef __cplusplus

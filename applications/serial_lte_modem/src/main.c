@@ -246,6 +246,11 @@ void start_execute(void)
 	if (at_cmd_write(mdm_trace, NULL, 0, NULL) != 0) {
 		LOG_ERR("Failed to enable modem trace");
 	}
+
+#if defined(CONFIG_NRF_MODEM_LIB_TRACE_MEDIUM_RTT) && defined(CONFIG_NRF_MODEM_LIB_TRACE_RTT_DIAGNOSTICS)
+	/* Print initial RTT trace buffer status */
+	nrf_modem_lib_trace_rtt_diagnose();
+#endif
 #endif
 
 	if (fota_type == DFU_TARGET_IMAGE_TYPE_MCUBOOT) {

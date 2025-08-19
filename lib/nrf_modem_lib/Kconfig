@@ -53,6 +53,13 @@ config NRF_MODEM_LIB_TRACE_MEDIUM_RTT_BUF_SIZE
 	int "Size of the buffer used by the RTT to write messages"
 	default 255
 
+config NRF_MODEM_LIB_TRACE_RTT_DIAGNOSTICS
+	bool "Enable RTT trace buffer diagnostics"
+	help
+	  Enable diagnostic functions for RTT trace buffer monitoring.
+	  This provides functions to check buffer status and usage,
+	  which can help debug RTT trace reliability issues.
+
 endif # NRF_MODEM_LIB_TRACE_MEDIUM_RTT
 
 endif # NRF_MODEM_LIB_TRACE_ENABLED

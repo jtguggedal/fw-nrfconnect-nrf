@@ -453,25 +453,66 @@ void trace_uart_init(void)
 
 #ifdef CONFIG_NRF_MODEM_LIB_TRACE_MEDIUM_RTT
 #define RTT_BUF_SZ		(CONFIG_NRF_MODEM_LIB_TRACE_MEDIUM_RTT_BUF_SIZE)
-static int trace_rtt_channel;
+static int trace_rtt_channel = -1;
 static char rtt_buffer[RTT_BUF_SZ];
+static bool trace_rtt_ready = false;
 #endif
 
 static void trace_rtt_init(void)
 {
 #ifdef CONFIG_NRF_MODEM_LIB_TRACE_MEDIUM_RTT
+	/* Only initialize if not already done */
+	if (trace_rtt_channel >= 0) {
+		return;
+	}
+
 	trace_rtt_channel = SEGGER_RTT_AllocUpBuffer("modem_trace", rtt_buffer,
 		sizeof(rtt_buffer), SEGGER_RTT_MODE_NO_BLOCK_SKIP);
 
 	if (trace_rtt_channel < 0) {
 		LOG_ERR("Could not allocated RTT channel for modem trace (%d)",
 			trace_rtt_channel);
+		trace_rtt_ready = false;
 	} else {
 		LOG_INF("RTT channel for modem trace is now %d",
 			trace_rtt_channel);
+		trace_rtt_ready = true;
 	}
 #endif
 }
+
+/* Early RTT trace initialization - called at boot time */
+static int trace_rtt_early_init(const struct device *dev)
+{
+	ARG_UNUSED(dev);
+	trace_rtt_init();
+	return 0;
+}
+
+/* Initialize RTT trace early in the boot process */
+SYS_INIT(trace_rtt_early_init, PRE_KERNEL_1, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT);
+
+#if defined(CONFIG_NRF_MODEM_LIB_TRACE_MEDIUM_RTT) && defined(CONFIG_NRF_MODEM_LIB_TRACE_RTT_DIAGNOSTICS)
+/* Diagnostic function to check RTT trace buffer status */
+void nrf_modem_lib_trace_rtt_diagnose(void)
+{
+	if (!trace_rtt_ready || trace_rtt_channel < 0) {
+		LOG_WRN("RTT trace not ready (channel: %d, ready: %s)",
+			trace_rtt_channel, trace_rtt_ready ? "true" : "false");
+		return;
+	}
+
+	uint32_t available = SEGGER_RTT_GetAvailWriteSpace(trace_rtt_channel);
+	uint32_t used = RTT_BUF_SZ - available;
+	uint32_t usage_percent = (used * 100) / RTT_BUF_SZ;
+
+	LOG_INF("RTT trace buffer status:");
+	LOG_INF("  Channel: %d", trace_rtt_channel);
+	LOG_INF("  Buffer size: %d bytes", RTT_BUF_SZ);
+	LOG_INF("  Used: %d bytes (%d%%)", used, usage_percent);
+	LOG_INF("  Available: %d bytes", available);
+}
+#endif
 
 void *nrf_modem_os_alloc(size_t bytes)
 {
@@ -619,6 +660,8 @@ void nrf_modem_os_init(void)
 
 int32_t nrf_modem_os_trace_put(const uint8_t * const data, uint32_t len)
 {
+	int32_t ret = 0;
+
 #ifdef CONFIG_NRF_MODEM_LIB_TRACE_MEDIUM_UART
 	/* Max DMA transfers are 255 bytes.
 	 * Split RAM buffer into smaller chunks
@@ -636,23 +679,56 @@ int32_t nrf_modem_os_trace_put(const uint8_t * const data, uint32_t len)
 #endif
 
 #ifdef CONFIG_NRF_MODEM_LIB_TRACE_MEDIUM_RTT
-	/* First, let's check if the buffer has been correctly
-	 * allocated for the modem trace
-	 */
-	if (trace_rtt_channel < 0) {
-		return 0;
+	/* Check if RTT trace is ready and channel is allocated */
+	if (!trace_rtt_ready || trace_rtt_channel < 0) {
+		/* Try to initialize RTT if not ready */
+		trace_rtt_init();
+		if (!trace_rtt_ready || trace_rtt_channel < 0) {
+			return -ENODEV;
+		}
+	}
+
+	/* Check if there's enough space in the RTT buffer */
+	uint32_t available_space = SEGGER_RTT_GetAvailWriteSpace(trace_rtt_channel);
+	if (available_space < len) {
+		/* Return -ENOSPC when buffer is full, as per v3.1.0 improvements */
+		return -ENOSPC;
 	}
 
 	uint32_t remaining_bytes = len;
+	uint32_t total_written = 0;
 
 	while (remaining_bytes) {
-		uint8_t transfer_len = MIN(remaining_bytes, RTT_BUF_SZ);
+		/* Limit transfer size to RTT buffer size to avoid overflow */
+		uint32_t transfer_len = MIN(remaining_bytes, RTT_BUF_SZ);
 		uint32_t idx = len - remaining_bytes;
+		uint32_t written;
 
-		SEGGER_RTT_WriteSkipNoLock(trace_rtt_channel, &data[idx],
+		written = SEGGER_RTT_WriteSkipNoLock(trace_rtt_channel, &data[idx],
 			transfer_len);
-		remaining_bytes -= transfer_len;
+
+		if (written == 0) {
+			/* Buffer became full during write */
+			ret = -ENOSPC;
+			break;
+		}
+
+		total_written += written;
+		remaining_bytes -= written;
+
+		/* If we couldn't write the full chunk, buffer is getting full */
+		if (written < transfer_len) {
+			ret = -ENOSPC;
+			break;
+		}
 	}
+
+	/* Return number of bytes successfully written, or error code */
+	return (ret < 0) ? ret : (int32_t)total_written;
 #endif
+
+#if !defined(CONFIG_NRF_MODEM_LIB_TRACE_MEDIUM_UART) && !defined(CONFIG_NRF_MODEM_LIB_TRACE_MEDIUM_RTT)
+	/* No trace medium configured */
 	return 0;
+#endif
 }
