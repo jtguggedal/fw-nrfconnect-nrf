@@ -12,6 +12,7 @@
 
 #include <nrf_modem.h>
 #include <nrf_modem_os.h>
+#include <modem/nrf_modem_lib.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <zephyr/init.h>
