@@ -5,6 +5,8 @@
  */
 
 #include <net/nrf_cloud.h>
+#include <string.h>
+#include <stdio.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 #if defined(CONFIG_MODEM_JWT)
@@ -23,6 +25,7 @@ LOG_MODULE_REGISTER(nrf_cloud_jwt, CONFIG_NRF_CLOUD_LOG_LEVEL);
 
 #if defined(CONFIG_NRF_CLOUD_JWT_SOURCE_CUSTOM)
 #include <zephyr/sys/base64.h>
+#include <zephyr/sys/util.h>
 #include <psa/crypto.h>
 #include <app_jwt.h>
 #include "nrf_cloud_credentials_keygen_internal.h"
@@ -30,14 +33,18 @@ LOG_MODULE_REGISTER(nrf_cloud_jwt, CONFIG_NRF_CLOUD_LOG_LEVEL);
 /* Size of the ES256 private key material */
 #define PRV_KEY_SZ (32)
 
-#if !defined(CONFIG_NRF_CLOUD_CREDENTIALS_KEYGEN)
+#if !defined(CONFIG_NRF_CLOUD_CREDENTIALS_KEYGEN) && !defined(CONFIG_APP_CLOUD_JWT_TEST_KEY_BUILTIN)
 /* The raw-key helpers below are only used when the private key is read from the
  * TLS credentials store. With on-device key generation the key resides in PSA
- * and is referenced by id, so these are not compiled.
+ * and is referenced by id, and with a built-in test key the raw key material
+ * comes from Kconfig, so these are not compiled.
  */
 #define PRV_KEY_DER_SZ	      (138)
 #define PRV_KEY_PEM_SZ	      (256)
 #define PRV_KEY_DER_START_IDX (36)
+
+#define BEGIN_PRV_KEY "-----BEGIN PRIVATE KEY-----"
+#define END_PRV_KEY   "-----END PRIVATE KEY-----"
 
 static void remove_line_breaks(char *const str)
 {
@@ -53,8 +60,6 @@ static void remove_line_breaks(char *const str)
 	str[new] = '\0';
 }
 
-#define BEGIN_PRV_KEY "-----BEGIN PRIVATE KEY-----"
-#define END_PRV_KEY   "-----END PRIVATE KEY-----"
 static int strip_non_key_data(char *const str)
 {
 	char *start;
@@ -136,13 +141,41 @@ static int get_key_from_cred(const int sec_tag, uint8_t *const der_out)
 
 	return 0;
 }
-#endif /* !CONFIG_NRF_CLOUD_CREDENTIALS_KEYGEN */
+#endif /* !CONFIG_NRF_CLOUD_CREDENTIALS_KEYGEN && !CONFIG_APP_CLOUD_JWT_TEST_KEY_BUILTIN */
+
+#if defined(CONFIG_APP_CLOUD_JWT_TEST_KEY_BUILTIN) && !defined(CONFIG_NRF_CLOUD_CREDENTIALS_KEYGEN)
+static int get_key_from_builtin(uint8_t *const der_out)
+{
+	static const char key_hex[] = CONFIG_APP_CLOUD_JWT_TEST_KEY_HEX;
+	size_t key_hex_len;
+	size_t out_len;
+
+	key_hex_len = strlen(key_hex);
+	if (key_hex_len != (PRV_KEY_SZ * 2)) {
+		LOG_ERR("Invalid APP_CLOUD_JWT_TEST_KEY_HEX length: %u", key_hex_len);
+
+		return -EINVAL;
+	}
+
+	out_len = hex2bin(key_hex, key_hex_len, der_out, PRV_KEY_SZ);
+	if (out_len != PRV_KEY_SZ) {
+		LOG_ERR("hex2bin failed for built-in JWT key, len: %u", out_len);
+
+		return -EBADF;
+	}
+
+	return 0;
+}
+#endif /* CONFIG_APP_CLOUD_JWT_TEST_KEY_BUILTIN && !CONFIG_NRF_CLOUD_CREDENTIALS_KEYGEN */
 
 static int custom_jwt_generate(uint32_t exp_delta_s, char *const jwt_buf, size_t jwt_buf_sz,
 			       const char *subject, int sec_tag)
 {
 	int err = 0;
 	psa_key_id_t kid;
+	char iss_buf[APP_JWT_CLAIM_MAX_SIZE];
+	const char *issuer;
+	int n;
 
 	err = psa_crypto_init();
 	if (err != PSA_SUCCESS) {
@@ -165,7 +198,11 @@ static int custom_jwt_generate(uint32_t exp_delta_s, char *const jwt_buf, size_t
 	uint8_t priv_key[PRV_KEY_SZ];
 
 	/* Load private key from storage */
+#if defined(CONFIG_APP_CLOUD_JWT_TEST_KEY_BUILTIN)
+	err = get_key_from_builtin(priv_key);
+#else
 	err = get_key_from_cred(sec_tag, priv_key);
+#endif
 	if (err) {
 		LOG_ERR("Failed to get private key, error: %d", err);
 		return err;
@@ -186,6 +223,18 @@ static int custom_jwt_generate(uint32_t exp_delta_s, char *const jwt_buf, size_t
 	}
 #endif /* CONFIG_NRF_CLOUD_CREDENTIALS_KEYGEN */
 
+	issuer = NULL;
+	if (subject != NULL && subject[0] != '\0' &&
+	    CONFIG_NRF_CLOUD_JWT_ISS_HW_PREFIX[0] != '\0') {
+		n = snprintf(iss_buf, sizeof(iss_buf), "%s.%s", CONFIG_NRF_CLOUD_JWT_ISS_HW_PREFIX,
+			     subject);
+		if (n <= 0 || n >= (int)sizeof(iss_buf)) {
+			LOG_ERR("iss claim too long");
+			return -EINVAL;
+		}
+		issuer = iss_buf;
+	}
+
 	struct app_jwt_data _jwt_internal = {
 		.sec_tag = kid,
 		.key_type = JWT_KEY_TYPE_CLIENT_PRIV,
@@ -194,9 +243,19 @@ static int custom_jwt_generate(uint32_t exp_delta_s, char *const jwt_buf, size_t
 		.jwt_buf = jwt_buf,
 		.jwt_sz = jwt_buf_sz,
 		.subject = subject,
+		.issuer = issuer,
 	};
 
-	return app_jwt_generate(&_jwt_internal);
+	err = app_jwt_generate(&_jwt_internal);
+	if (err) {
+		return err;
+	}
+
+#if defined(CONFIG_APP_CLOUD_JWT_TEST_KEY_BUILTIN)
+	LOG_WRN("Test JWT: %s", jwt_buf);
+#endif
+
+	return 0;
 }
 #endif /* CONFIG_NRF_CLOUD_JWT_SOURCE_CUSTOM */
 

@@ -157,6 +157,17 @@ config NRF_CLOUD_JWT_SOURCE_CUSTOM
 	  JWTs are created and signed by the nRF Cloud library, not the modem.
 	  The signing key is obtained from the TLS credentials module.
 
+config NRF_CLOUD_JWT_ISS_HW_PREFIX
+	string "JWT iss hardware prefix (<prefix>.<client_id>)"
+	default ""
+	depends on NRF_CLOUD_JWT_SOURCE_CUSTOM
+	help
+	  When non-empty, custom JWT generation sets claim iss to "<prefix>.<subject>"
+	  where subject is the nRF Cloud client ID. The nRF Cloud portal JWT tools
+	  and modem JWT tokens use this pattern (see nRF Cloud JWT documentation).
+	  Leave empty to omit iss. Common values include nrf9160 for nRF91 IMEI-style
+	  client IDs (nrf-<IMEI>).
+
 config NRF_CLOUD_AWS_CA_CERT_SIZE_THRESHOLD
 	int "Root CA size above which AWS cert is likely present"
 	default 1150
