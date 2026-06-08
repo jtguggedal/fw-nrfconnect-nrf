@@ -1,0 +1,41 @@
+#
+# Copyright (c) 2026 Nordic Semiconductor ASA
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+menu "TCP eDRX MT-data test"
+
+config TCP_TEST_SERVER_ADDRESS
+	string "TCP server IPv4 address"
+	default "100.30.211.218"
+	help
+	  Public IPv4 address of the test server (server.py).
+
+config TCP_TEST_SERVER_PORT
+	int "TCP server port"
+	default 7777
+
+config TCP_TEST_KEEPALIVE_SECONDS
+	int "Uplink keepalive interval in seconds (0 = listen only)"
+	default 0
+	help
+	  If greater than 0, send a small uplink packet at this interval to keep
+	  the TCP/NAT binding alive and to mirror the field device's periodic
+	  'state' messages (which generate the MO connections that sometimes
+	  catch the delayed downlink). Set to 0 to only listen for downlink,
+	  which is the purest observation of the MT-delivery delay.
+
+config TCP_TEST_RECV_BUF_SIZE
+	int "Receive buffer size in bytes"
+	default 512
+
+endmenu
+
+module = TCP_TEST
+module-str = TCP eDRX MT-data test
+source "$(ZEPHYR_BASE)/subsys/logging/Kconfig.template.log_config"
+
+menu "Zephyr Kernel"
+source "Kconfig.zephyr"
+endmenu
