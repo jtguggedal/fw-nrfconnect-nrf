@@ -30,3 +30,13 @@ tests:
     integration_platforms:
       - nrf54h20dk/nrf54h20/cpuapp
     timeout: 7
+
+  samples.protectedmem_periphconf.nrf9251dk:
+    tags:
+      - sysbuild
+      - ci_samples_sdfw
+    platform_allow:
+      - nrf9251dk/nrf9251/cpuapp
+    integration_platforms:
+      - nrf9251dk/nrf9251/cpuapp
+    timeout: 7
