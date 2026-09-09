@@ -20,6 +20,10 @@ manifest:
     # NCS repositories are hosted here.
     - name: ncs
       url-base: https://github.com/nrfconnect
+    # Personal fork, carrying the nRF9251 MCUboot work that is not upstream yet.
+    # See the mcuboot project entry below for what depends on it.
+    - name: jtguggedal
+      url-base: https://github.com/jtguggedal
     # Third-party repository sources:
     - name: zephyrproject
       url-base: https://github.com/zephyrproject-rtos
@@ -127,9 +131,19 @@ manifest:
           upstream-url: https://github.com/Wi-FiQuickTrack/Wi-FiQuickTrack-ControlAppC
           upstream-sha: 1225729e8d84075f03bf9fc51eee85d84dfb0091
           compare-by-default: true
+    # Pinned to a branch on a personal fork rather than to an upstream SHA, because
+    # the nRF9251 support this build needs is not upstream: five [nrf noup] commits
+    # for the SoC configuration, mapped-MRAM conditions, Ed25519/PSA defaults and a
+    # TLV validation fix, plus the MPC override configuration that makes
+    # SB_CONFIG_NCS_MCUBOOT_MPCCONF_STATIC_WRITE_PROTECTION work on this part.
+    #
+    # The upstream pin was 5ec3a71ae3c8aae6620cd8def588d1c5c886e4e5, which predates
+    # all of it -- a west update against that revision leaves a tree where nRF9251
+    # does not build at all. Revisit when the noup commits land in sdk-mcuboot.
     - name: mcuboot
+      remote: jtguggedal
       repo-path: sdk-mcuboot
-      revision: 5ec3a71ae3c8aae6620cd8def588d1c5c886e4e5
+      revision: nrf9251-mpc-write-protection
       path: bootloader/mcuboot
     - name: qcbor
       repo-path: sdk-qcbor

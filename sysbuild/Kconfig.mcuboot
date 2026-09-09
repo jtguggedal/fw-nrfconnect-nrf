@@ -310,7 +310,7 @@ config NCS_MCUBOOT_LOAD_PERIPHCONF
 
 config NCS_MCUBOOT_MPCCONF_STATIC_WRITE_PROTECTION
 	bool "Write protect partitions using MPCCONF from MCUboot [EXPERIMENTAL]"
-	depends on SOC_SERIES_NRF54H
+	depends on SOC_SERIES_NRF54H || SOC_SERIES_NRF92
 	select EXPERIMENTAL
 	help
 	  Remove write permissions from the bootloader partition and the booted images
